@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iris-security"
+version = "1.0.0"
+description = "Real-time behavioral security monitoring for LLM agent systems"
+readme = "README_PKG.md"
+license = {text = "MIT"}
+authors = [{name = "Twinkle Kamdar", email = "tkamdar@andrew.cmu.edu"}]
+requires-python = ">=3.9"
+keywords = ["llm security", "prompt injection", "agentic ai", "langchain"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Security",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+langchain = ["langchain>=0.3.0", "langchain-core>=0.3.0"]
+full = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-groq>=0.2.0",
+    "langgraph>=0.2.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "streamlit>=1.40.0",
+    "plotly>=5.24.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "xgboost>=2.1.0",
+    "groq>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hell-99/IRIS"
+Repository = "https://github.com/hell-99/IRIS"
+Issues = "https://github.com/hell-99/IRIS/issues"

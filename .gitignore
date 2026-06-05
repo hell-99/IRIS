@@ -1,0 +1,43 @@
+# Secrets - never commit these
+.env
+.env.*
+*.env
+!.env.example
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Runtime-generated data (run the pipeline to regenerate)
+# demo_data/ is intentionally NOT ignored - it seeds the hosted deployment
+agentguard/data/logs/
+agentguard/data/models/
+agentguard/exports/sigma_rules/
+agentguard/exports/iris_threat_intel.json
+agentguard/policies/agent_policies.yaml
+agentguard/data/eval_results.json
+
+# Editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/

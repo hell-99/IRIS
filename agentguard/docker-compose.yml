@@ -1,0 +1,44 @@
+services:
+
+  iris-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: iris-api
+    volumes:
+      - iris-data:/app/data
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_PATH=data/logs/agentguard.db
+      - RISK_THRESHOLD=70.0
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    command: sh start_api.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  iris-dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: iris-dashboard
+    volumes:
+      - iris-data:/app/data
+    ports:
+      - "8501:8501"
+    environment:
+      - DB_PATH=data/logs/agentguard.db
+      - API_BASE_URL=http://iris-api:8000
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    command: sh start_dashboard.sh
+    depends_on:
+      iris-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  iris-data:
