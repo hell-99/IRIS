@@ -296,7 +296,9 @@ if DIRECT_DB:
 def fetch_user(ep, params=None):
     """Fetch user-scoped data using current token."""
     if DIRECT_DB:
-        return _direct_fetch(ep, params)
+        if _is_demo_user():
+            return _direct_fetch(ep, params)
+        return None
     token = st.session_state.get("token")
     return fetch(ep, params=params, _token=token)
 
