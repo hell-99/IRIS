@@ -215,6 +215,14 @@ html,body,[class*="css"]{
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
+/* Force sidebar always visible */
+[data-testid="stSidebarCollapsedControl"]{display:none !important;}
+section[data-testid="stSidebar"]{
+  transform:none !important;
+  min-width:260px !important;
+  width:260px !important;
+}
+
 /* Plotly override */
 .js-plotly-plot .plotly .main-svg{background:transparent !important;}
 </style>
@@ -360,7 +368,7 @@ with st.sidebar:
     </div>""", unsafe_allow_html=True)
 
 # Header
-c1,c2,c3 = st.columns([5,1,1])
+c1,c2 = st.columns([5,1])
 with c1:
     st.markdown("""
     <div class='iris-logo'>IRIS</div>
@@ -370,11 +378,6 @@ with c2:
     st.markdown("<div style='height:20px'></div>",unsafe_allow_html=True)
     if st.button("↻  Refresh", use_container_width=True):
         st.cache_data.clear(); st.rerun()
-with c3:
-    st.markdown("<div style='height:20px'></div>",unsafe_allow_html=True)
-    from auth.ui import logout
-    if st.button("Sign Out", use_container_width=True):
-        logout()
 
 # OVERVIEW
 if page == "Overview":
