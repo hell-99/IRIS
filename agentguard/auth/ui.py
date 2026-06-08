@@ -27,15 +27,63 @@ def _is_direct_db() -> bool:
         return os.getenv("DIRECT_DB", "false").lower() == "true"
 
 
+def _direct_db_login(email: str, password: str) -> dict:
+    if email == "demo@iris-security.com" and password == "demo123":
+        return _DEMO_USER
+    try:
+        import sqlite3, hashlib, pathlib
+        db = pathlib.Path("/tmp/iris_auth.db")
+        con = sqlite3.connect(str(db))
+        row = con.execute(
+            "SELECT user_id, email, name, salt, password_hash FROM users WHERE email=?",
+            (email,)
+        ).fetchone()
+        con.close()
+        if not row:
+            return {"detail": "No account found with that email."}
+        uid, em, nm, salt, pw_hash = row
+        if hashlib.sha256(f"{password}{salt}".encode()).hexdigest() != pw_hash:
+            return {"detail": "Incorrect password."}
+        return {"token": uid, "user_id": uid, "email": em, "name": nm,
+                "is_demo": False, "plan": "free"}
+    except Exception:
+        return {"detail": "Invalid credentials."}
+
+
+def _direct_db_register(email: str, name: str, password: str) -> dict:
+    try:
+        import sqlite3, hashlib, secrets, uuid, pathlib
+        db = pathlib.Path("/tmp/iris_auth.db")
+        con = sqlite3.connect(str(db))
+        con.execute("""CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL, password_hash TEXT NOT NULL, salt TEXT NOT NULL)""")
+        con.commit()
+        if con.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
+            con.close()
+            return {"detail": "Email already registered."}
+        uid = str(uuid.uuid4())
+        salt = secrets.token_hex(16)
+        pw_hash = hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
+        con.execute("INSERT INTO users VALUES (?,?,?,?,?)",
+                    (uid, email, name, pw_hash, salt))
+        con.commit()
+        con.close()
+        return {"token": uid, "user_id": uid, "email": email, "name": name,
+                "is_demo": False, "plan": "free"}
+    except Exception as e:
+        return {"detail": str(e)}
+
+
 def _api_post(endpoint: str, data: dict) -> dict:
     direct_db = _is_direct_db()
     if direct_db:
         if endpoint == "/auth/login":
-            if (data.get("email") == "demo@iris-security.com" and
-                    data.get("password") == "demo123"):
-                return _DEMO_USER
-            return {"detail": "Use demo@iris-security.com / demo123"}
-        return {"detail": "Registration not available in demo mode"}
+            return _direct_db_login(data.get("email", ""), data.get("password", ""))
+        if endpoint == "/auth/register":
+            return _direct_db_register(
+                data.get("email", ""), data.get("name", ""), data.get("password", ""))
+        return {"detail": "Unknown endpoint"}
     try:
         r = requests.post(f"{API_BASE}{endpoint}", json=data, timeout=5)
         return r.json()
@@ -133,15 +181,14 @@ def show_login_page():
             }
             st.rerun()
 
-        if not _is_direct_db():
-            st.markdown("---")
-            st.markdown(
-                "<p style='text-align:center; color:#64748b; font-size:0.85rem;'>Don't have an account?</p>",
-                unsafe_allow_html=True
-            )
-            if st.button("Create Account", use_container_width=True):
-                st.session_state.auth_page = "register"
-                st.rerun()
+        st.markdown("---")
+        st.markdown(
+            "<p style='text-align:center; color:#64748b; font-size:0.85rem;'>Don't have an account?</p>",
+            unsafe_allow_html=True
+        )
+        if st.button("Create Account", use_container_width=True):
+            st.session_state.auth_page = "register"
+            st.rerun()
 
 
 def show_register_page():
