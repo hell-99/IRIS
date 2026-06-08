@@ -9,7 +9,6 @@ import requests
 import streamlit as st
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
-DIRECT_DB = os.getenv("DIRECT_DB", "false").lower() == "true"
 
 _DEMO_USER = {
     "token": "demo",
@@ -22,7 +21,8 @@ _DEMO_USER = {
 
 
 def _api_post(endpoint: str, data: dict) -> dict:
-    if DIRECT_DB:
+    direct_db = os.getenv("DIRECT_DB", "false").lower() == "true"
+    if direct_db:
         if endpoint == "/auth/login":
             if (data.get("email") == "demo@iris-security.com" and
                     data.get("password") == "demo123"):
