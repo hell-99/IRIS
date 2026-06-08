@@ -24,8 +24,11 @@ if str(_root) not in sys.path:
 
 DIRECT_DB = os.getenv("DIRECT_DB", "false").lower() == "true"
 
-from auth.ui import require_auth, show_user_header
-if not require_auth():
+from auth.ui import init_session_state, show_auth_page, show_user_header
+
+init_session_state()
+if not st.session_state.get("authenticated", False):
+    show_auth_page()
     st.stop()
 
 show_user_header()
@@ -355,7 +358,7 @@ with st.sidebar:
     </div>""", unsafe_allow_html=True)
 
 # Header
-c1,c2 = st.columns([5,1])
+c1,c2,c3 = st.columns([5,1,1])
 with c1:
     st.markdown("""
     <div class='iris-logo'>IRIS</div>
@@ -365,6 +368,11 @@ with c2:
     st.markdown("<div style='height:20px'></div>",unsafe_allow_html=True)
     if st.button("↻  Refresh", use_container_width=True):
         st.cache_data.clear(); st.rerun()
+with c3:
+    st.markdown("<div style='height:20px'></div>",unsafe_allow_html=True)
+    from auth.ui import logout
+    if st.button("Sign Out", use_container_width=True):
+        logout()
 
 # OVERVIEW
 if page == "Overview":
