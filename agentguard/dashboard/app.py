@@ -4,10 +4,18 @@ Animated, modern, production-grade SOC aesthetic.
 """
 import sys, pathlib, time, requests, json
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
 import streamlit as st
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+except Exception as _plotly_err:
+    st.set_page_config(page_title="IRIS - Import Error", layout="wide")
+    import traceback
+    st.error(f"Plotly import failed: {type(_plotly_err).__name__}: {_plotly_err}")
+    st.code(traceback.format_exc())
+    st.stop()
 
 st.set_page_config(
     page_title="IRIS  -  Agentic Security Monitor",
