@@ -133,14 +133,15 @@ def show_login_page():
             }
             st.rerun()
 
-        st.markdown("---")
-        st.markdown(
-            "<p style='text-align:center; color:#64748b; font-size:0.85rem;'>Don't have an account?</p>",
-            unsafe_allow_html=True
-        )
-        if st.button("Create Account", use_container_width=True):
-            st.session_state.auth_page = "register"
-            st.rerun()
+        if not _is_direct_db():
+            st.markdown("---")
+            st.markdown(
+                "<p style='text-align:center; color:#64748b; font-size:0.85rem;'>Don't have an account?</p>",
+                unsafe_allow_html=True
+            )
+            if st.button("Create Account", use_container_width=True):
+                st.session_state.auth_page = "register"
+                st.rerun()
 
 
 def show_register_page():
