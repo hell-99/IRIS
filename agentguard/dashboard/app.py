@@ -28,7 +28,9 @@ from auth.ui import init_session_state, show_auth_page, show_user_header
 
 init_session_state()
 if not st.session_state.get("authenticated", False):
-    show_auth_page()
+    _auth_placeholder = st.empty()
+    with _auth_placeholder.container():
+        show_auth_page()
     st.stop()
 
 show_user_header()
