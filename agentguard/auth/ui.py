@@ -83,25 +83,36 @@ def show_login_page():
             if submitted:
                 if not email or not password:
                     st.error("Please enter email and password")
+                elif (email == "demo@iris-security.com" and password == "demo123"):
+                    st.session_state.authenticated = True
+                    st.session_state.token = "demo"
+                    st.session_state.user = {
+                        "user_id": "demo",
+                        "email": "demo@iris-security.com",
+                        "name": "Demo User",
+                        "is_demo": True,
+                        "plan": "pro",
+                    }
+                    st.rerun()
                 else:
                     with st.spinner("Signing in..."):
-                        result = _api_post("/auth/login",{
-                            "email":email,
+                        result = _api_post("/auth/login", {
+                            "email": email,
                             "password": password,
                         })
-
                     if "token" in result:
                         st.session_state.authenticated = True
                         st.session_state.token = result["token"]
                         st.session_state.user = {
-                            "user_id":result["user_id"],
-                            "email":result["email"],
+                            "user_id": result["user_id"],
+                            "email": result["email"],
                             "name": result["name"],
-                            "is_demo":result["is_demo"],
-                            "plan":result["plan"],
+                            "is_demo": result["is_demo"],
+                            "plan": result["plan"],
                         }
                         st.rerun()
-                    else: st.error(result.get("detail", "Invalid credentials"))
+                    else:
+                        st.error(result.get("detail", "Invalid credentials"))
 
         st.markdown("---")
 
@@ -111,23 +122,16 @@ def show_login_page():
             unsafe_allow_html=True
         )
         if st.button("Sign in as Demo User", use_container_width=True):
-            with st.spinner("Loading demo..."):
-                result = _api_post("/auth/login", {
-                    "email":"demo@iris-security.com",
-                    "password":"demo123",})
-                
-            if "token" in result:
-                st.session_state.authenticated = True
-                st.session_state.token= result["token"]
-                st.session_state.user={
-                    "user_id": result["user_id"],
-                    "email":result["email"],
-                    "name":result["name"],
-                    "is_demo":result["is_demo"],
-                    "plan":result["plan"],
-                }
-                st.rerun()
-            else: st.error("Demo login failed, is the API running?")
+            st.session_state.authenticated = True
+            st.session_state.token = "demo"
+            st.session_state.user = {
+                "user_id": "demo",
+                "email": "demo@iris-security.com",
+                "name": "Demo User",
+                "is_demo": True,
+                "plan": "pro",
+            }
+            st.rerun()
 
         st.markdown("---")
         st.markdown(
