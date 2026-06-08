@@ -20,8 +20,15 @@ _DEMO_USER = {
 }
 
 
+def _is_direct_db() -> bool:
+    try:
+        return str(st.secrets.get("DIRECT_DB", os.getenv("DIRECT_DB", "false"))).lower() == "true"
+    except Exception:
+        return os.getenv("DIRECT_DB", "false").lower() == "true"
+
+
 def _api_post(endpoint: str, data: dict) -> dict:
-    direct_db = os.getenv("DIRECT_DB", "false").lower() == "true"
+    direct_db = _is_direct_db()
     if direct_db:
         if endpoint == "/auth/login":
             if (data.get("email") == "demo@iris-security.com" and
