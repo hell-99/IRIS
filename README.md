@@ -13,7 +13,7 @@
 
 *Detects prompt injection, privilege escalation, data exfiltration, cross-agent collusion, and behavioral drift - in under 1ms*
 
-[**Live Demo**](#demo) · [**Quick Start**](#quick-start) · [**Architecture**](#architecture) · [**Novel Contributions**](#novel-contributions)
+[**Live Demo**](https://iris-hell99.streamlit.app) · [**Quick Start**](#quick-start) · [**Architecture**](#architecture) · [**Novel Contributions**](#novel-contributions)
 
 </div>
 
@@ -294,22 +294,9 @@ python3 demo_impossible_attack.py  # Terminal 2
 
 Watch IRIS catch the "impossible attack" in real time through the dashboard as the agent calls come in.
 
-**Hosted demo (Streamlit Community Cloud - free):**
+**Live demo:** [iris-hell99.streamlit.app](https://iris-hell99.streamlit.app)
 
-The dashboard can be deployed to [Streamlit Community Cloud](https://streamlit.io/cloud) for free with no credit card. It runs in `DIRECT_DB` mode, reading the pre-populated demo SQLite database directly without needing a running FastAPI server.
-
-Steps to deploy (takes about 5 minutes):
-1. Push this repo to GitHub (public or private both work)
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub
-3. Click "New app" and select this repo
-4. Set the main file path to: `agentguard/dashboard/app.py`
-5. Under "Advanced settings > Secrets", add:
-   ```
-   DIRECT_DB = "true"
-   ```
-6. Click Deploy
-
-The dashboard loads the pre-built `demo_data/agentguard.db` (894 interactions, 131 sessions, 14 collusion detections) and all charts render immediately. No API server or Groq key needed.
+Runs in `DIRECT_DB` mode - reads the pre-populated demo SQLite database directly, no API server or Groq key needed. Loads 894 interactions, 131 sessions, and 14 collusion detections immediately.
 
 ---
 

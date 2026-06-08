@@ -9,9 +9,26 @@ import requests
 import streamlit as st
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
+DIRECT_DB = os.getenv("DIRECT_DB", "false").lower() == "true"
+
+_DEMO_USER = {
+    "token": "demo",
+    "user_id": "demo",
+    "email": "demo@iris-security.com",
+    "name": "Demo User",
+    "is_demo": True,
+    "plan": "pro",
+}
 
 
 def _api_post(endpoint: str, data: dict) -> dict:
+    if DIRECT_DB:
+        if endpoint == "/auth/login":
+            if (data.get("email") == "demo@iris-security.com" and
+                    data.get("password") == "demo123"):
+                return _DEMO_USER
+            return {"detail": "Use demo@iris-security.com / demo123"}
+        return {"detail": "Registration not available in demo mode"}
     try:
         r = requests.post(f"{API_BASE}{endpoint}", json=data, timeout=5)
         return r.json()

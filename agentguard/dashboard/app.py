@@ -7,15 +7,8 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-except Exception as _plotly_err:
-    st.set_page_config(page_title="IRIS - Import Error", layout="wide")
-    import traceback
-    st.error(f"Plotly import failed: {type(_plotly_err).__name__}: {_plotly_err}")
-    st.code(traceback.format_exc())
-    st.stop()
+import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(
     page_title="IRIS  -  Agentic Security Monitor",
@@ -30,19 +23,6 @@ if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
 DIRECT_DB = os.getenv("DIRECT_DB", "false").lower() == "true"
-
-if DIRECT_DB:
-    # In Streamlit Community Cloud: skip FastAPI auth, use demo session
-    if not st.session_state.get("authenticated"):
-        st.session_state.authenticated = True
-        st.session_state.token = "demo"
-        st.session_state.user = {
-            "user_id": "demo",
-            "email": "demo@iris-security.com",
-            "name": "Demo User",
-            "is_demo": True,
-            "plan": "pro",
-        }
 
 from auth.ui import require_auth, show_user_header
 if not require_auth():
