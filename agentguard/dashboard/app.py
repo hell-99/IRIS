@@ -385,7 +385,8 @@ with c2:
 if page == "Overview":
     m = fetch_user("/api/metrics")
     if not m:
-        st.error("No data  -  run day1/day2/day3 first"); st.stop()
+        st.info("No agent data yet. **Sign in as Demo User** to see a pre-loaded simulation with 894 tool calls, 14 collusion patterns, and live detections — or self-host IRIS and connect your own LLM agents.")
+        st.stop()
 
     # KPI row
     st.markdown("<div class='sec'>// system metrics</div>",unsafe_allow_html=True)
@@ -511,7 +512,9 @@ elif page == "Sessions":
     if sf!="All": p["status"]=sf
     data = fetch_user("/api/sessions",p)
 
-    if data and data.get("sessions"):
+    if not data or not data.get("sessions"):
+        st.info("No sessions yet. **Sign in as Demo User** to see 131 agent sessions across admin, analyst, and reader roles — or connect your own agents to IRIS.")
+    elif data and data.get("sessions"):
         for s in data["sessions"]:
             risk = s.get("cumulative_risk",0) or 0
             bc,bl = threat_badge(risk)
@@ -665,7 +668,7 @@ elif page == "Detections":
                 </div>
                 {reason_html}
             </div>""",unsafe_allow_html=True)
-    else: st.info("No detections. Run day2 first.")
+    else: st.info("No detections yet. **Sign in as Demo User** to see 38 suspicious intent-action divergences caught across 131 sessions — or connect your own agents to IRIS.")
 
 # COLLUSION
 elif page == "Collusion":
@@ -763,7 +766,7 @@ elif page == "Collusion":
                     </div>
                 </div>
             </div>""",unsafe_allow_html=True)
-    else: st.info("No collusion detections. Run day3 first.")
+    else: st.info("No collusion detections yet. **Sign in as Demo User** to see 14 cross-agent collusion patterns, including 8 CRITICAL split exfiltration attacks coordinated across separate sessions.")
 
 # ATTACK GRAPHS
 elif page == "Attack Graphs":
@@ -773,7 +776,7 @@ elif page == "Attack Graphs":
     graphs = fetch_user("/api/graphs",{"limit":30})
 
     if not graphs or not graphs.get("graphs"):
-        st.info("No attack graphs. Run day3 first.")
+        st.info("No attack graphs yet. **Sign in as Demo User** to see 119 reconstructed kill chains mapped to MITRE ATLAS TTPs, with red/green node graphs showing exactly which tool calls were blocked.")
     else:
         df = pd.DataFrame(graphs["graphs"])
 
@@ -985,7 +988,7 @@ elif page == "Live Feed":
             </div>""",unsafe_allow_html=True)
 
         st.markdown("</div>",unsafe_allow_html=True)
-    else: st.info("No events. Run day1/day2/day3 first.")
+    else: st.info("No events yet. **Sign in as Demo User** to see a live stream of 894 tool calls across admin, analyst, and reader agents — or integrate IRIS into your own LangChain agents with `IRISCallbackHandler`.")
 
 # Auto refresh
 if auto:
