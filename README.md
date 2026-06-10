@@ -21,11 +21,13 @@
 
 ## The Problem
 
-LLM agents are being deployed in production with access to databases, APIs, file systems, and user accounts. The attack surface isn't just "someone sends a malicious prompt" - it's subtler than that.
+LLM agents are being deployed in production with access to databases, APIs, file systems, and user accounts. Most companies have **zero visibility into what those agents are actually doing at runtime.** Not what the task said. What the agent actually did.
 
 The harder problem is **indirect prompt injection**: a task description that looks completely legitimate but subtly redirects the agent toward accessing things it shouldn't. No explicit malicious instruction. No red flags in the text. Just audit framing, or helpdesk framing, or reporting framing - and the agent follows it without hesitation.
 
 I built IRIS because existing tools don't catch this. Rule-based firewalls look for patterns. LLM safety training works on direct attacks. Neither catches an agent that's technically using its allowed tools but doing something it was never supposed to do.
+
+**The assumption that agents will stay within their intended behavior because you wrote good prompts is not a security posture.**
 
 ---
 
@@ -116,7 +118,7 @@ Agent B (analyst):  call_api(/api/secrets)               @ T+45s  <- looks norma
                                                          CRITICAL: Split Exfiltration
 ```
 
-I haven't found this as an open-source tool anywhere else.
+**I spent weeks looking for open-source tooling that detects multi-agent coordination attacks. It doesn't exist. That's why I built this.**
 
 ![Cross-Agent Collusion Detection](assets/collusion.png)
 
@@ -286,6 +288,8 @@ Interactive docs at `http://localhost:8000/docs`
 
 ## Demo
 
+**Demo video:** *(coming soon)*
+
 **Local demo:**
 ```bash
 python3 iris_start.py              # Terminal 1
@@ -386,6 +390,14 @@ IRIS's intent-action divergence detection is designed to close this gap by looki
 Cybersecurity - Graduating December 2026
 
 [LinkedIn](https://linkedin.com/in/twinklekamdar) · [GitHub](https://github.com/hell-99) · tkamdar@andrew.cmu.edu
+
+---
+
+## Why This Matters
+
+LLM agents are getting more capable, more autonomous, and more access to sensitive systems — faster than security tooling is keeping up. The attack surface is shifting from "what the model says" to "what the agent does."
+
+IRIS is the monitoring layer that's missing: watch what agents do, catch the divergence, stop the attack before it completes.
 
 ---
 
