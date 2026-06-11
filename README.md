@@ -288,7 +288,7 @@ Interactive docs at `http://localhost:8000/docs`
 
 ## Demo
 
-**Demo video:** *(coming soon)*
+**Demo video:** [Watch on YouTube](https://youtu.be/nqiDZgpAdyM) (9 min)
 
 **Local demo:**
 ```bash
