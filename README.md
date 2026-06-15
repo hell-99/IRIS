@@ -171,6 +171,52 @@ analyst:
 
 ---
 
+## Garak Red Team Integration
+
+IRIS ships with a built-in adversarial validation pipeline aligned to [Garak](https://github.com/leondz/garak) — the open-source LLM vulnerability scanner. Rather than testing the raw LLM in isolation, IRIS red-teams the **complete agent pipeline** — the LLM + tool interceptor + behavioral detection stack — and measures how many adversarial probes IRIS catches before they cause damage.
+
+### Why this matters
+
+Garak tells you whether an LLM can be tricked. IRIS tells you whether the system catches it when the LLM *is* tricked. These are different questions. An LLM with poor jailbreak resistance can still be safely deployed if the behavioral monitoring layer catches the resulting malicious tool calls.
+
+### Detection results
+
+18 probes across 5 Garak probe categories — **100% detection rate**:
+
+| Category | Garak Probe | Probes | Detection Rate |
+|---|---|---|---|
+| Prompt Injection | `garak.probes.promptinject.*` | 4 | 100% |
+| Jailbreak | `garak.probes.jailbreak.{Dan,Aim}` | 4 | 100% |
+| Privilege Escalation | `garak.probes.knownbadsignatures.*` | 3 | 100% |
+| Data Exfiltration | `garak.probes.continuation.*` | 4 | 100% |
+| Encoding Attacks | `garak.probes.encoding.{InjectBase64,InjectROT13}` | 3 | 100% |
+
+Kill chain stage coverage: Delivery (7), Exploitation (4), Installation (3), Actions on Objectives (4).
+
+### Two detection modes
+
+**Simulation mode** (no LLM needed) — runs predefined malicious tool call sequences per probe, tests IRIS's behavioral detection layer in isolation: permission enforcement, risk scoring, MITRE ATLAS TTP mapping.
+
+**Live mode** (requires Ollama) — feeds the actual adversarial prompt to a LangGraph+Ollama agent. The LLM decides what to do. IRIS monitors all resulting tool calls and runs intent-action divergence analysis. Measures whether IRIS catches the agent misbehaving after the LLM is tricked.
+
+```bash
+# Simulation mode (no LLM required)
+python3 run_red_team.py
+
+# Live mode (needs Ollama running)
+python3 run_red_team.py --mode live
+
+# Single category
+python3 run_red_team.py --category PROMPT_INJECTION
+
+# List all 18 probes
+python3 run_red_team.py --list
+```
+
+Each run saves a full JSON report to `data/red_team/` with per-probe results, kill chain stage distribution, and MITRE ATLAS TTP breakdown.
+
+---
+
 ## Architecture
 
 ```
