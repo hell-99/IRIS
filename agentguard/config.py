@@ -45,11 +45,11 @@ ATTACK_LABELS = {
 
 # MITRE ATLAS TTP mappings
 MITRE_ATLAS_TTPS = {
-    "privilege_escalation": {"id": "AML.T0006", "name": "LLM Prompt Injection",         "tactic": "Execution"},
-    "lateral_movement": {"id": "AML.T0043", "name": "Craft Adversarial Data",        "tactic": "ML Attack Staging"},
-    "data_exfiltration": {"id": "AML.T0025", "name": "Exfiltration via ML Inference", "tactic": "Exfiltration"},
-    "permission_violation": {"id": "AML.T0040", "name": "ML Model Inference API Access", "tactic": "Collection"},
-    "tool_misuse": {"id": "AML.T0051", "name": "LLM Plugin Compromise",         "tactic": "Execution"},
+    "privilege_escalation": {"id": "AML.T0006", "name": "LLM Prompt Injection",          "tactic": "Execution",          "kill_chain_stage": 3, "kill_chain_phase": "Delivery"},
+    "lateral_movement":     {"id": "AML.T0043", "name": "Craft Adversarial Data",         "tactic": "ML Attack Staging",  "kill_chain_stage": 4, "kill_chain_phase": "Exploitation"},
+    "data_exfiltration":    {"id": "AML.T0025", "name": "Exfiltration via ML Inference",  "tactic": "Exfiltration",       "kill_chain_stage": 7, "kill_chain_phase": "Actions on Objectives"},
+    "permission_violation": {"id": "AML.T0040", "name": "ML Model Inference API Access",  "tactic": "Collection",         "kill_chain_stage": 5, "kill_chain_phase": "Installation"},
+    "tool_misuse":          {"id": "AML.T0051", "name": "LLM Plugin Compromise",          "tactic": "Execution",          "kill_chain_stage": 6, "kill_chain_phase": "Command & Control"},
 }
 
 # Sandbox context for LLM agents
