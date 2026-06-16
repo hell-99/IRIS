@@ -7,18 +7,21 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 
-# Kill chain lookup by MITRE ATLAS TTP ID
-_root_cfg = pathlib.Path(__file__).parent.parent
-if str(_root_cfg) not in sys.path:
-    sys.path.insert(0, str(_root_cfg))
-try:
-    from config import MITRE_ATLAS_TTPS
-    KC_BY_TTP_ID = {v["id"]: {"stage": v["kill_chain_stage"], "phase": v["kill_chain_phase"]}
-                    for v in MITRE_ATLAS_TTPS.values()}
-    KC_BY_TTP_NAME = {v["name"]: {"stage": v["kill_chain_stage"], "phase": v["kill_chain_phase"]}
-                      for v in MITRE_ATLAS_TTPS.values()}
-except Exception:
-    KC_BY_TTP_ID, KC_BY_TTP_NAME = {}, {}
+# Kill chain lookup by MITRE ATLAS TTP ID / TTP name
+KC_BY_TTP_ID = {
+    "AML.T0006": {"stage": 3, "phase": "Delivery"},
+    "AML.T0043": {"stage": 4, "phase": "Exploitation"},
+    "AML.T0025": {"stage": 7, "phase": "Actions on Objectives"},
+    "AML.T0040": {"stage": 5, "phase": "Installation"},
+    "AML.T0051": {"stage": 6, "phase": "Command & Control"},
+}
+KC_BY_TTP_NAME = {
+    "LLM Prompt Injection":          {"stage": 3, "phase": "Delivery"},
+    "Craft Adversarial Data":        {"stage": 4, "phase": "Exploitation"},
+    "Exfiltration via ML Inference": {"stage": 7, "phase": "Actions on Objectives"},
+    "ML Model Inference API Access": {"stage": 5, "phase": "Installation"},
+    "LLM Plugin Compromise":         {"stage": 6, "phase": "Command & Control"},
+}
 
 import plotly.express as px
 import plotly.graph_objects as go
