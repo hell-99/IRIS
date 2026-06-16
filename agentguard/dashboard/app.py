@@ -7,6 +7,19 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 
+# Kill chain lookup by MITRE ATLAS TTP ID
+_root_cfg = pathlib.Path(__file__).parent.parent
+if str(_root_cfg) not in sys.path:
+    sys.path.insert(0, str(_root_cfg))
+try:
+    from config import MITRE_ATLAS_TTPS
+    KC_BY_TTP_ID = {v["id"]: {"stage": v["kill_chain_stage"], "phase": v["kill_chain_phase"]}
+                    for v in MITRE_ATLAS_TTPS.values()}
+    KC_BY_TTP_NAME = {v["name"]: {"stage": v["kill_chain_stage"], "phase": v["kill_chain_phase"]}
+                      for v in MITRE_ATLAS_TTPS.values()}
+except Exception:
+    KC_BY_TTP_ID, KC_BY_TTP_NAME = {}, {}
+
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -708,6 +721,14 @@ elif page == "Collusion":
             sev_c   = "#ff4757" if sev=="CRITICAL" else "#ffa502"
             sev_bc  = "badge-red" if sev=="CRITICAL" else "badge-amber"
 
+            kc      = KC_BY_TTP_ID.get(ttp, {})
+            kc_html = (
+                f"<span style='margin-left:4px;padding:2px 7px;border-radius:4px;"
+                f"background:rgba(255,165,2,0.12);color:#ffa502;"
+                f"font-size:0.68rem;font-family:JetBrains Mono,monospace;'>"
+                f"Stage {kc['stage']} — {kc['phase']}</span>"
+            ) if kc else ""
+
             st.markdown(f"""
             <div class='col-card'>
                 <div style='display:flex;justify-content:space-between;
@@ -719,6 +740,7 @@ elif page == "Collusion":
                         <span class='badge badge-blue' style='margin-left:4px;'>
                             {ttp}
                         </span>
+                        {kc_html}
                     </div>
                     <div style='font-size:0.72rem;color:#484f58;
                                 font-family:JetBrains Mono,monospace;'>{a1ts}</div>
@@ -896,6 +918,13 @@ elif page == "Attack Graphs":
                             f" · {ttp}</span>"
                         ) if ttp and ttp!=" - " else ""
 
+                        kc2     = KC_BY_TTP_NAME.get(ttp, {})
+                        kc_html2 = (
+                            f"<span style='font-size:0.65rem;color:#ffa502;"
+                            f"font-family:JetBrains Mono,monospace;'>"
+                            f" · Stage {kc2['stage']} {kc2['phase']}</span>"
+                        ) if kc2 else ""
+
                         st.markdown(f"""
                         <div class='ev'>
                             <span style='color:{ic};min-width:12px;
@@ -906,7 +935,7 @@ elif page == "Attack Graphs":
                                          text-align:right;font-weight:600;'>
                                 {risk:.0f}
                             </span>
-                            {ttp_html}
+                            {ttp_html}{kc_html2}
                         </div>""",unsafe_allow_html=True)
 
 # LIVE FEED
