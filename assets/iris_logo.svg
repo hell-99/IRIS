@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <!-- Background radial gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#0d1422;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#060912;stop-opacity:1"/>
+    </radialGradient>
+
+    <!-- Iris glow gradient -->
+    <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.9"/>
+      <stop offset="40%" style="stop-color:#00d4ff;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#0066ff;stop-opacity:0.2"/>
+    </radialGradient>
+
+    <!-- Pupil gradient -->
+    <radialGradient id="pupilGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#060912;stop-opacity:1"/>
+      <stop offset="70%" style="stop-color:#0a0f1e;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.3"/>
+    </radialGradient>
+
+    <!-- Outer ring glow -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Strong glow for pupil dot -->
+    <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip path for eye shape -->
+    <clipPath id="eyeClip">
+      <ellipse cx="200" cy="200" rx="130" ry="75"/>
+    </clipPath>
+
+    <!-- Scan line gradient -->
+    <linearGradient id="scanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0"/>
+      <stop offset="50%" style="stop-color:#00ff88;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bgGrad)" rx="20"/>
+
+  <!-- Outer hex ring segments (decorative circuit traces) -->
+  <g opacity="0.25" stroke="#00d4ff" stroke-width="1" fill="none">
+    <!-- Corner bracket lines -->
+    <polyline points="30,30 30,80 80,30" />
+    <polyline points="370,30 370,80 320,30" />
+    <polyline points="30,370 30,320 80,370" />
+    <polyline points="370,370 370,320 320,370" />
+    <!-- Side tick marks -->
+    <line x1="200" y1="20" x2="200" y2="35"/>
+    <line x1="200" y1="365" x2="200" y2="380"/>
+    <line x1="20" y1="200" x2="35" y2="200"/>
+    <line x1="365" y1="200" x2="380" y2="200"/>
+    <!-- Diagonal traces -->
+    <line x1="60" y1="60" x2="90" y2="90"/>
+    <line x1="340" y1="60" x2="310" y2="90"/>
+    <line x1="60" y1="340" x2="90" y2="310"/>
+    <line x1="340" y1="340" x2="310" y2="310"/>
+  </g>
+
+  <!-- Rotating dashed orbit ring -->
+  <circle cx="200" cy="200" r="155" fill="none" stroke="#00d4ff" stroke-width="0.8"
+          stroke-dasharray="8 6" opacity="0.3"/>
+
+  <!-- Second orbit -->
+  <circle cx="200" cy="200" r="168" fill="none" stroke="#00ff88" stroke-width="0.5"
+          stroke-dasharray="3 12" opacity="0.2"/>
+
+  <!-- Tick marks on outer ring -->
+  <g stroke="#00d4ff" stroke-width="1.5" opacity="0.5">
+    <line x1="200" y1="32" x2="200" y2="44"/>
+    <line x1="200" y1="356" x2="200" y2="368"/>
+    <line x1="32" y1="200" x2="44" y2="200"/>
+    <line x1="356" y1="200" x2="368" y2="200"/>
+    <!-- 45 degree ticks -->
+    <line x1="310" y1="90" x2="302" y2="98"/>
+    <line x1="90" y1="90" x2="98" y2="98"/>
+    <line x1="90" y1="310" x2="98" y2="302"/>
+    <line x1="310" y1="310" x2="302" y2="302"/>
+  </g>
+
+  <!-- Eye white/sclera glow -->
+  <ellipse cx="200" cy="200" rx="135" ry="78" fill="#060912" opacity="0.95"/>
+  <ellipse cx="200" cy="200" rx="135" ry="78" fill="none"
+           stroke="#00d4ff" stroke-width="2" opacity="0.6" filter="url(#glow)"/>
+
+  <!-- Eye lid curves (sharp almond shape) -->
+  <path d="M70,200 Q140,128 200,125 Q260,128 330,200 Q260,272 200,275 Q140,272 70,200 Z"
+        fill="#060d1a" stroke="none"/>
+
+  <!-- Iris ring layers (colored segments) -->
+  <!-- Outer iris ring -->
+  <ellipse cx="200" cy="200" rx="90" ry="90" fill="none"
+           stroke="#0066ff" stroke-width="12" opacity="0.3" clip-path="url(#eyeClip)"/>
+  <!-- Mid iris ring with segments -->
+  <ellipse cx="200" cy="200" rx="75" ry="75" fill="none"
+           stroke="#00d4ff" stroke-width="8" stroke-dasharray="15 8" opacity="0.5"
+           clip-path="url(#eyeClip)"/>
+  <!-- Inner iris glow fill -->
+  <circle cx="200" cy="200" r="68" fill="url(#irisGrad)" opacity="0.5"
+          clip-path="url(#eyeClip)"/>
+
+  <!-- Iris texture lines (spokes) -->
+  <g stroke="#00ff88" stroke-width="0.8" opacity="0.35" clip-path="url(#eyeClip)">
+    <line x1="200" y1="130" x2="200" y2="270"/>
+    <line x1="130" y1="200" x2="270" y2="200"/>
+    <line x1="148" y1="148" x2="252" y2="252"/>
+    <line x1="252" y1="148" x2="148" y2="252"/>
+    <line x1="164" y1="136" x2="236" y2="264"/>
+    <line x1="236" y1="136" x2="164" y2="264"/>
+    <line x1="136" y1="164" x2="264" y2="236"/>
+    <line x1="136" y1="236" x2="264" y2="164"/>
+  </g>
+
+  <!-- Pupil -->
+  <circle cx="200" cy="200" r="36" fill="url(#pupilGrad)" clip-path="url(#eyeClip)"/>
+  <circle cx="200" cy="200" r="36" fill="none" stroke="#00ff88" stroke-width="1.5"
+          opacity="0.7" clip-path="url(#eyeClip)"/>
+
+  <!-- Pupil center dot (the "active scan" point) -->
+  <circle cx="200" cy="200" r="8" fill="#00ff88" opacity="0.95"
+          filter="url(#strongGlow)" clip-path="url(#eyeClip)"/>
+
+  <!-- Scan line (horizontal sweep) -->
+  <rect x="70" y="197" width="260" height="2" fill="url(#scanGrad)"
+        opacity="0.6" clip-path="url(#eyeClip)"/>
+
+  <!-- Crosshair on pupil -->
+  <g stroke="#00ff88" stroke-width="1" opacity="0.8" clip-path="url(#eyeClip)">
+    <line x1="200" y1="158" x2="200" y2="172"/>
+    <line x1="200" y1="228" x2="200" y2="242"/>
+    <line x1="158" y1="200" x2="172" y2="200"/>
+    <line x1="228" y1="200" x2="242" y2="200"/>
+  </g>
+
+  <!-- Eye lid outline (sharp almond) -->
+  <path d="M70,200 Q140,128 200,125 Q260,128 330,200"
+        fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.8"/>
+  <path d="M70,200 Q140,272 200,275 Q260,272 330,200"
+        fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.8"/>
+
+  <!-- Corner eyelash accents -->
+  <g stroke="#00d4ff" stroke-width="1.5" opacity="0.6">
+    <line x1="70" y1="200" x2="55" y2="196"/>
+    <line x1="70" y1="200" x2="56" y2="204"/>
+    <line x1="330" y1="200" x2="345" y2="196"/>
+    <line x1="330" y1="200" x2="345" y2="204"/>
+  </g>
+
+  <!-- IRIS text -->
+  <text x="200" y="336" font-family="JetBrains Mono, Courier New, monospace"
+        font-size="42" font-weight="700" letter-spacing="18"
+        text-anchor="middle" fill="#e6edf3" opacity="0.95">IRIS</text>
+
+  <!-- Tagline -->
+  <text x="200" y="358" font-family="JetBrains Mono, Courier New, monospace"
+        font-size="9" font-weight="400" letter-spacing="4"
+        text-anchor="middle" fill="#00d4ff" opacity="0.7">AGENTIC SECURITY MONITOR</text>
+
+  <!-- Small version label top-right -->
+  <text x="370" y="48" font-family="JetBrains Mono, Courier New, monospace"
+        font-size="7" letter-spacing="1"
+        text-anchor="end" fill="#00ff88" opacity="0.4">v2.0</text>
+
+  <!-- Bottom data readout -->
+  <text x="200" y="385" font-family="JetBrains Mono, Courier New, monospace"
+        font-size="7" letter-spacing="2"
+        text-anchor="middle" fill="#484f58" opacity="0.6">[ MONITORING ACTIVE ]</text>
+</svg>
