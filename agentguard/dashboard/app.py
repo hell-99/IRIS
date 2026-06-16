@@ -729,65 +729,38 @@ elif page == "Collusion":
                 f"Stage {kc['stage']} — {kc['phase']}</span>"
             ) if kc else ""
 
-            st.markdown(f"""
-            <div class='col-card'>
-                <div style='display:flex;justify-content:space-between;
-                            align-items:center;margin-bottom:12px;'>
-                    <div>
-                        <span style='font-size:0.9rem;font-weight:600;
-                                     margin-right:8px;'>! {pattern}</span>
-                        <span class='badge {sev_bc}'>{sev}</span>
-                        <span class='badge badge-blue' style='margin-left:4px;'>
-                            {ttp}
-                        </span>
-                        {kc_html}
-                    </div>
-                    <div style='font-size:0.72rem;color:#484f58;
-                                font-family:JetBrains Mono,monospace;'>{a1ts}</div>
-                </div>
-                <div style='font-size:0.78rem;color:#484f58;margin-bottom:16px;'>
-                    {desc}
-                </div>
-                <div style='display:flex;align-items:center;gap:12px;'>
-                    <div class='agent-box'>
-                        <div style='font-size:0.6rem;color:#484f58;
-                                    text-transform:uppercase;letter-spacing:0.1em;
-                                    margin-bottom:6px;font-family:JetBrains Mono,monospace;'>
-                            Agent A
-                        </div>
-                        <div style='color:#00ff88;font-family:JetBrains Mono,monospace;
-                                    font-size:0.85rem;font-weight:600;'>
-                            {a1r}
-                        </div>
-                        <div style='color:#e6edf3;font-family:JetBrains Mono,monospace;
-                                    font-size:0.8rem;margin-top:2px;'>
-                            -> {a1t}
-                        </div>
-                    </div>
-                    <div class='connector'>
-                        <div style='font-size:1.4rem;'>!</div>
-                        <div style='font-size:0.65rem;color:#484f58;'>
-                            {delta/1000:.1f}s apart
-                        </div>
-                        <div style='font-size:0.7rem;color:{sev_c};'>COORDINATED</div>
-                    </div>
-                    <div class='agent-box' style='border:1px solid rgba(255,71,87,0.2);'>
-                        <div style='font-size:0.6rem;color:#484f58;
-                                    text-transform:uppercase;letter-spacing:0.1em;
-                                    margin-bottom:6px;font-family:JetBrains Mono,monospace;'>
-                            Agent B
-                        </div>
-                        <div style='color:#ff4757;font-family:JetBrains Mono,monospace;
-                                    font-size:0.85rem;font-weight:600;'>
-                            {a2r}
-                        </div>
-                        <div style='color:#e6edf3;font-family:JetBrains Mono,monospace;
-                                    font-size:0.8rem;margin-top:2px;'>
-                            -> {a2t}
-                        </div>
-                    </div>
-                </div>
-            </div>""",unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='col-card'>"
+                f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;'>"
+                f"<div>"
+                f"<span style='font-size:0.9rem;font-weight:600;margin-right:8px;'>! {pattern}</span>"
+                f"<span class='badge {sev_bc}'>{sev}</span>"
+                f"<span class='badge badge-blue' style='margin-left:4px;'>{ttp}</span>"
+                f"{kc_html}"
+                f"</div>"
+                f"<div style='font-size:0.72rem;color:#484f58;font-family:JetBrains Mono,monospace;'>{a1ts}</div>"
+                f"</div>"
+                f"<div style='font-size:0.78rem;color:#484f58;margin-bottom:16px;'>{desc}</div>"
+                f"<div style='display:flex;align-items:center;gap:12px;'>"
+                f"<div class='agent-box'>"
+                f"<div style='font-size:0.6rem;color:#484f58;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:JetBrains Mono,monospace;'>Agent A</div>"
+                f"<div style='color:#00ff88;font-family:JetBrains Mono,monospace;font-size:0.85rem;font-weight:600;'>{a1r}</div>"
+                f"<div style='color:#e6edf3;font-family:JetBrains Mono,monospace;font-size:0.8rem;margin-top:2px;'>-&gt; {a1t}</div>"
+                f"</div>"
+                f"<div class='connector'>"
+                f"<div style='font-size:1.4rem;'>!</div>"
+                f"<div style='font-size:0.65rem;color:#484f58;'>{delta/1000:.1f}s apart</div>"
+                f"<div style='font-size:0.7rem;color:{sev_c};'>COORDINATED</div>"
+                f"</div>"
+                f"<div class='agent-box' style='border:1px solid rgba(255,71,87,0.2);'>"
+                f"<div style='font-size:0.6rem;color:#484f58;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:JetBrains Mono,monospace;'>Agent B</div>"
+                f"<div style='color:#ff4757;font-family:JetBrains Mono,monospace;font-size:0.85rem;font-weight:600;'>{a2r}</div>"
+                f"<div style='color:#e6edf3;font-family:JetBrains Mono,monospace;font-size:0.8rem;margin-top:2px;'>-&gt; {a2t}</div>"
+                f"</div>"
+                f"</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
     else: st.info("No collusion detections yet. **Sign in as Demo User** to see 14 cross-agent collusion patterns, including 8 CRITICAL split exfiltration attacks coordinated across separate sessions.")
 
 # ATTACK GRAPHS
@@ -925,18 +898,16 @@ elif page == "Attack Graphs":
                             f" · Stage {kc2['stage']} {kc2['phase']}</span>"
                         ) if kc2 else ""
 
-                        st.markdown(f"""
-                        <div class='ev'>
-                            <span style='color:{ic};min-width:12px;
-                                         font-weight:700;'>{icon}</span>
-                            <span style='color:#e6edf3;min-width:130px;'>{tool}</span>
-                            <span style='color:#484f58;flex:1;'>{args_str}</span>
-                            <span style='color:{risk_c};min-width:60px;
-                                         text-align:right;font-weight:600;'>
-                                {risk:.0f}
-                            </span>
-                            {ttp_html}{kc_html2}
-                        </div>""",unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div class='ev'>"
+                            f"<span style='color:{ic};min-width:12px;font-weight:700;'>{icon}</span>"
+                            f"<span style='color:#e6edf3;min-width:130px;'>{tool}</span>"
+                            f"<span style='color:#484f58;flex:1;'>{args_str}</span>"
+                            f"<span style='color:{risk_c};min-width:60px;text-align:right;font-weight:600;'>{risk:.0f}</span>"
+                            f"{ttp_html}{kc_html2}"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
 
 # LIVE FEED
 elif page == "Live Feed":
