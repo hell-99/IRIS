@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![IRIS Dashboard](assets/dashboard.png)
+![IRIS Logo](assets/iris_logo.svg)
 
 **Real-time behavioral security monitoring for LLM agent systems**
 
@@ -10,10 +10,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI](https://img.shields.io/badge/pip-iris--security-green)](https://pypi.org/project/iris-security/)
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://www.docker.com/)
+[![Garak](https://img.shields.io/badge/Garak-18%2F18%20detected-brightgreen)](https://github.com/leondz/garak)
 
 *Detects prompt injection, privilege escalation, data exfiltration, cross-agent collusion, and behavioral drift - in under 1ms*
 
-[**Live Demo**](https://iris-hell99.streamlit.app) · [**Quick Start**](#quick-start) · [**Architecture**](#architecture) · [**Novel Contributions**](#novel-contributions)
+[**Live Demo**](https://iris-hell99.streamlit.app) · [**Quick Start**](#quick-start) · [**Architecture**](#architecture) · [**Novel Contributions**](#novel-contributions) · [**Medium Article**](https://medium.com/@debugcigcode/my-ai-agent-passed-every-security-check-then-it-stole-my-credentials-069e3099cb4a)
 
 </div>
 
@@ -122,7 +123,7 @@ Agent B (analyst):  call_api(/api/secrets)               @ T+45s  <- looks norma
 
 ![Cross-Agent Collusion Detection](assets/collusion.png)
 
-*14 collusion patterns detected: 8 CRITICAL (Split Exfiltration, Credential Harvest), 6 HIGH*
+*14 collusion patterns detected: 8 CRITICAL (Split Exfiltration, Credential Harvest), 6 HIGH — each card auto-mapped to Cyber Kill Chain stage via MITRE ATLAS*
 
 ### 3. Prompt Injection Fingerprinting
 
@@ -137,7 +138,21 @@ Every detected injection gets a SHA-256 behavioral fingerprint. Same attack fram
 }
 ```
 
-### 4. CUSUM Behavioral Drift Detection
+### 4. Cyber Kill Chain Auto-Mapping
+
+Every detection — collusion, injection, drift — is automatically mapped to its Lockheed Martin Cyber Kill Chain stage via MITRE ATLAS TTP IDs. No manual tagging. The dashboard badges each alert with its stage in real-time.
+
+```
+AML.T0025 (Exfiltration via LLM API) → Stage 7 — Actions on Objectives
+AML.T0006 (LLM Prompt Injection)     → Stage 3 — Delivery
+AML.T0043 (Credential Compromise)    → Stage 4 — Exploitation
+AML.T0040 (Backdoor ML Model)        → Stage 5 — Installation
+AML.T0051 (Command & Control via LLM)→ Stage 6 — Command & Control
+```
+
+This lets a SOC analyst immediately understand where in the attack campaign a detection sits — without needing to look up the TTP manually.
+
+### 5. CUSUM Behavioral Drift Detection
 
 The attack that rule engines always miss: instead of one obvious malicious call, risk slowly creeps upward over many sessions. Each individual call looks fine. The drift is the attack.
 
@@ -149,7 +164,7 @@ Call 17:     CUSUM alarm - risk=23, drift detected <- IRIS catches it here
 Call 35:     risk=75 (rule engine fires here)      <- too late
 ```
 
-### 5. Attack Graph Reconstruction
+### 6. Attack Graph Reconstruction
 
 Every flagged session gets a visual kill chain showing which tool calls were allowed vs blocked, mapped to MITRE ATLAS TTPs.
 
@@ -157,7 +172,7 @@ Every flagged session gets a visual kill chain showing which tool calls were all
 
 *Kill chain graphs: red nodes = blocked calls, green = allowed. Each graph maps to a specific MITRE ATLAS TTP.*
 
-### 6. Declarative Policy Engine
+### 7. Declarative Policy Engine
 
 OPA-style YAML security policies enforced automatically across all agents. Roles, forbidden paths, rate limits - all in one place.
 
@@ -214,6 +229,51 @@ python3 run_red_team.py --list
 ```
 
 Each run saves a full JSON report to `data/red_team/` with per-probe results, kill chain stage distribution, and MITRE ATLAS TTP breakdown.
+
+![Garak Red Team Results](assets/garak_results.png)
+
+*18/18 probes detected, 0 bypasses — Kill Chain stage coverage: Delivery (7), Exploitation (4), Installation (3), Actions on Objectives (4)*
+
+---
+
+## CrowdStrike Falcon LogScale Integration
+
+IRIS ships a production-ready integration that streams alerts into [CrowdStrike Falcon LogScale](https://www.crowdstrike.com/platform/next-gen-siem/falcon-logscale/) in real-time.
+
+```bash
+# Set connection details
+export LOGSCALE_URL=http://localhost:8080
+export LOGSCALE_TOKEN=your_ingest_token
+
+# Test connectivity
+python -m integrations.logscale_sink --test
+
+# Replay all historical IRIS alerts into LogScale
+python -m integrations.logscale_sink --replay
+
+# Live streaming — attach to any LangChain agent
+from integrations.logscale_sink import attach_to_callback
+attach_to_callback(iris_handler)
+```
+
+Every alert is structured with `ttp_id`, `kc_stage`, `kc_phase`, `risk_score`, `agent_id`, and `severity` — matching the field schema in the included Falcon QL queries.
+
+### Falcon QL Threat Hunting Queries
+
+`integrations/falcon_ql_queries.md` contains 10 behavioral hunting queries for the `iris-alerts` repository:
+
+| Query | Purpose |
+|-------|---------|
+| High-Risk Agent Activity | Triage sessions with risk ≥ 85 |
+| Kill Chain Progression | Detect multi-stage campaign escalation |
+| Cross-Agent Collusion | Surface confirmed coordination events |
+| Exfiltration Pathway | All Stage 7 Actions on Objectives hits |
+| Prompt Injection by TTP | Attack surface distribution by MITRE ATLAS |
+| Behavioral Drift | Agents deviating from baseline tool mix |
+| Blocked vs Allowed Gap | Policy enforcement coverage analysis |
+| Real-Time Alert Rate | Live SOC dashboard widget |
+| Session Risk Timeline | Full attack reconstruction for one session |
+| Sub-Second Collusion | Automated coordination detection (< 500ms) |
 
 ---
 
@@ -334,6 +394,8 @@ Interactive docs at `http://localhost:8000/docs`
 
 ## Demo
 
+**Medium article:** [My AI Agent Passed Every Security Check. Then It Stole My Credentials.](https://medium.com/@debugcigcode/my-ai-agent-passed-every-security-check-then-it-stole-my-credentials-069e3099cb4a)
+
 **Demo video:** [Watch on YouTube](https://youtu.be/nqiDZgpAdyM) (9 min)
 
 **Local demo:**
@@ -380,6 +442,10 @@ agentguard/
   exports/
     sigma_exporter.py       SIEM-ready Sigma rules
     fingerprint_engine.py   SHA-256 injection fingerprints
+  integrations/
+    logscale_sink.py        CrowdStrike Falcon LogScale ingest integration
+    falcon_ql_queries.md    Falcon QL behavioral threat hunting queries
+    langchain_callback.py   Drop-in LangChain monitoring callback
   demo_impossible_attack.py
   iris_start.py
 iris_package/           pip install iris-security
@@ -435,7 +501,7 @@ IRIS's intent-action divergence detection is designed to close this gap by looki
 **Twinkle Kamdar** - MSIS, Carnegie Mellon University (INI)
 Cybersecurity - Graduating December 2026
 
-[LinkedIn](https://linkedin.com/in/twinklekamdar) · [GitHub](https://github.com/hell-99) · tkamdar@andrew.cmu.edu
+[LinkedIn](https://linkedin.com/in/twinkle-kamdar3) · [GitHub](https://github.com/hell-99) · tkamdar@andrew.cmu.edu
 
 ---
 
