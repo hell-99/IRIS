@@ -513,6 +513,51 @@ IRIS is the monitoring layer that's missing: watch what agents do, catch the div
 
 ---
 
+## Compliance
+
+### NIST AI RMF 1.0
+
+IRIS maps natively to all four NIST AI RMF core functions. Run the compliance report against live session data:
+
+```bash
+python -m compliance.nist_ai_rmf
+```
+
+| Function | Subcategory | IRIS Control | Status |
+|----------|-------------|--------------|--------|
+| GOVERN | GV-1.1 AI risk policy | Policy engine + allowed_tools config | Implemented |
+| GOVERN | GV-6.1 Third-party risk | Groq API dependency tracking | Implemented |
+| MAP | MP-1.1 Threat context | MITRE ATLAS TTP mapping | Implemented |
+| MAP | MP-3.5 Attack surface | Kill chain stage classification | Implemented |
+| MEASURE | MS-1.1 Risk metrics | Risk score per tool call | Implemented |
+| MEASURE | MS-2.5 Anomaly detection | ML classifier + drift detector | Implemented |
+| MEASURE | MS-2.6 Red team testing | Garak integration (18/18 detected) | Implemented |
+| MANAGE | MG-1.1 Response actions | Block/allow enforcement | Implemented |
+| MANAGE | MG-2.2 Incident response | SHA-256 audit ledger + LogScale | Implemented |
+| MANAGE | MG-4.1 Residual risk | Residual gaps documented | Partial |
+
+Full mapping with 16 subcategories: [`agentguard/compliance/nist_ai_rmf.py`](agentguard/compliance/nist_ai_rmf.py)
+
+---
+
+### STRIDE Threat Model
+
+IRIS applies STRIDE to itself — the monitoring layer is a high-value target. Subverting IRIS blinds the entire security stack.
+
+| ID | Threat | Severity | Status |
+|----|--------|----------|--------|
+| T1 | Agent identity spoofing via forged role | HIGH | Partially mitigated |
+| T3 | Audit log tampering (SQLite write access) | CRITICAL | Mitigated (SHA-256 ledger) |
+| T5 | Agent denying malicious tool calls | MEDIUM | Mitigated (ledger + LogScale) |
+| T7 | Detection rule exposure enabling evasion | HIGH | Partially mitigated (Layer 3 LLM) |
+| T8 | JWT secret / API key exposure | CRITICAL | Mitigated (.gitignore) |
+| T9 | Interceptor flood by compromised agent | HIGH | Partially mitigated |
+| T11 | FastAPI unauthorized access | HIGH | Mitigated (JWT dependency injection) |
+
+Full 12-threat analysis with mitigations and recommendations: [`agentguard/compliance/stride_threat_model.md`](agentguard/compliance/stride_threat_model.md)
+
+---
+
 ## License
 
 MIT License - Twinkle Kamdar, 2026
