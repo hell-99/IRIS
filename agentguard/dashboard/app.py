@@ -372,7 +372,8 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio("", [
         "⬡  Overview","⬡  Sessions","⬡  Detections",
-        "⬡  Collusion","⬡  Attack Graphs","⬡  Live Feed"
+        "⬡  Collusion","⬡  Attack Graphs","⬡  Live Feed",
+        "⬡  XDR Correlations"
     ], label_visibility="collapsed")
     page = page.replace("⬡  ","")
 
@@ -992,6 +993,211 @@ elif page == "Live Feed":
 
         st.markdown("</div>",unsafe_allow_html=True)
     else: st.info("No events yet. **Sign in as Demo User** to see a live stream of 894 tool calls across admin, analyst, and reader agents — or integrate IRIS into your own LangChain agents with `IRISCallbackHandler`.")
+
+# XDR CORRELATIONS
+elif page == "XDR Correlations":
+    st.markdown("<div class='sec'>// cross-layer xdr correlations · ai agent + aws cloud</div>",
+                unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style='background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);
+                border-radius:10px;padding:14px 18px;margin-bottom:20px;
+                font-family:JetBrains Mono,monospace;font-size:0.78rem;color:#a855f7;'>
+        <b>XDR MODE</b> &nbsp;·&nbsp; Correlating IRIS agent-layer alerts with AWS CloudTrail
+        cloud-layer events within a ±60s window. Simulation mode active — connect AWS
+        credentials via <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code>
+        for live cloud telemetry.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Run correlator
+    try:
+        import sys as _sys
+        _root2 = pathlib.Path(__file__).parent.parent
+        if str(_root2) not in _sys.path:
+            _sys.path.insert(0, str(_root2))
+        from detection.xdr_correlator import XDRCorrelator
+        correlator   = XDRCorrelator(simulate=True, window_sec=60)
+        correlations = correlator.run(minutes=30)
+    except Exception as _xdr_err:
+        st.error(f"XDR correlator error: {_xdr_err}")
+        correlations = []
+
+    if not correlations:
+        st.info("No correlations found in the last 30 minutes. **Sign in as Demo User** — the XDR correlator runs in simulation mode and will generate cross-layer attack campaigns tied to IRIS detections.")
+    else:
+        # KPI row
+        critical = sum(1 for c in correlations if c.severity == "CRITICAL")
+        high     = sum(1 for c in correlations if c.severity == "HIGH")
+        avg_risk = int(sum(c.composite_risk for c in correlations) / len(correlations))
+        layers   = 2
+
+        kpi_data = [
+            (len(correlations),  "Campaigns Detected", "#a855f7"),
+            (critical,           "Critical",            "#ff4757"),
+            (high,               "High",                "#ffa502"),
+            (avg_risk,           "Avg Composite Risk",  "#00d2ff"),
+            (layers,             "Layers Correlated",   "#00ff88"),
+        ]
+        cols = st.columns(5)
+        for col, (val, label, color) in zip(cols, kpi_data):
+            with col:
+                st.markdown(f"""
+                <div class='kpi'>
+                    <div class='kpi-accent' style='background:{color};'></div>
+                    <div class='kpi-val' style='color:{color};'>{val}</div>
+                    <div class='kpi-label'>{label}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+        # Layer diagram
+        st.markdown("<div class='sec'>// attack layer map</div>", unsafe_allow_html=True)
+        fig_layers = go.Figure()
+        layer_labels = ["AI Agent Layer<br>(IRIS)", "→  XDR Correlation  →", "Cloud Layer<br>(CloudTrail)"]
+        layer_x      = [0.15, 0.5, 0.85]
+        layer_colors = ["#00ff88", "#a855f7", "#00d2ff"]
+        for i, (lbl, x, col) in enumerate(zip(layer_labels, layer_x, layer_colors)):
+            fig_layers.add_trace(go.Scatter(
+                x=[x], y=[0.5],
+                mode="markers+text",
+                marker=dict(size=40, color=col, opacity=0.15,
+                            line=dict(color=col, width=2)),
+                text=[lbl],
+                textposition="middle center",
+                textfont=dict(family="JetBrains Mono", size=10, color=col),
+                showlegend=False,
+                hoverinfo="none",
+            ))
+        # Arrow lines
+        for x0, x1 in [(0.22, 0.38), (0.62, 0.78)]:
+            fig_layers.add_shape(type="line", x0=x0, y0=0.5, x1=x1, y1=0.5,
+                                 line=dict(color="#a855f7", width=2, dash="dot"))
+        fig_layers.update_layout(
+            height=120,
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0,1]),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, range=[0,1]),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0, r=0, t=10, b=10),
+        )
+        st.plotly_chart(fig_layers, use_container_width=True)
+
+        # Composite risk chart
+        st.markdown("<div class='sec'>// campaign composite risk</div>", unsafe_allow_html=True)
+        campaign_labels = [f"Campaign {i+1}" for i in range(len(correlations))]
+        campaign_risks  = [c.composite_risk for c in correlations]
+        campaign_colors = ["#ff4757" if r >= 90 else "#ffa502" if r >= 75 else "#00d2ff"
+                           for r in campaign_risks]
+        fig_risk = go.Figure(go.Bar(
+            x=campaign_labels, y=campaign_risks,
+            marker=dict(color=campaign_colors, line=dict(width=0)),
+            hovertemplate="<b>%{x}</b><br>Composite Risk: %{y}<extra></extra>",
+        ))
+        fig_risk.update_layout(
+            title=dict(text="Composite Risk Score (IRIS + CloudTrail)", font=dict(size=11, color="#484f58")),
+            yaxis=dict(range=[0, 100], gridcolor="#21262d"),
+            xaxis=dict(gridcolor="#21262d"),
+            **PLOT
+        )
+        st.plotly_chart(fig_risk, use_container_width=True)
+
+        # Correlation cards
+        st.markdown("<div class='sec'>// confirmed cross-layer campaigns</div>", unsafe_allow_html=True)
+        for c in correlations:
+            sev_bc = "badge-red" if c.severity == "CRITICAL" else \
+                     "badge-amber" if c.severity == "HIGH" else "badge-blue"
+            sev_color = "#ff4757" if c.severity == "CRITICAL" else \
+                        "#ffa502" if c.severity == "HIGH" else "#00d2ff"
+            risk_color = threat_color(c.composite_risk)
+
+            def _sev_color(s):
+                return "#ff4757" if s == "CRITICAL" else "#ffa502" if s == "HIGH" else "#00d2ff"
+            cloud_rows = "".join(
+                "<div style='font-family:JetBrains Mono,monospace;font-size:0.75rem;"
+                "padding:4px 0;border-bottom:1px solid rgba(33,38,45,0.5);'>"
+                "<span style='color:#00d2ff;min-width:280px;display:inline-block;'>"
+                + e["event_name"] +
+                "</span><span style='color:#484f58;margin-left:12px;'>" + e["tactic"] +
+                "</span><span style='color:" + _sev_color(e["severity"]) + ";margin-left:12px;'>"
+                + e["severity"] + "</span></div>"
+                for e in c.cloud_events
+            )
+
+            mitre_badges = " ".join(
+                f"<span class='badge badge-blue'>{m}</span>"
+                for m in c.mitre_ids
+            )
+
+            st.markdown(f"""
+            <div style='background:var(--surface);border:1px solid var(--border);
+                        border-radius:10px;padding:1.4rem;margin-bottom:14px;
+                        border-top:2px solid {sev_color};'>
+                <div style='display:flex;justify-content:space-between;
+                            align-items:center;margin-bottom:14px;'>
+                    <div>
+                        <span style='font-size:0.9rem;font-weight:600;margin-right:8px;
+                                     font-family:JetBrains Mono,monospace;'>
+                            Campaign {c.correlation_id}
+                        </span>
+                        <span class='badge {sev_bc}'>{c.severity}</span>
+                        <span class='badge badge-blue' style='margin-left:4px;'>{c.ttp_id}</span>
+                        <span style='margin-left:6px;padding:2px 8px;border-radius:4px;
+                                     background:rgba(255,165,2,0.12);color:#ffa502;
+                                     font-size:0.68rem;font-family:JetBrains Mono,monospace;'>
+                            Stage {c.kc_stage} — {c.kc_phase}
+                        </span>
+                    </div>
+                    <div style='font-family:JetBrains Mono,monospace;font-size:1.6rem;
+                                font-weight:700;color:{risk_color};'>
+                        {c.composite_risk}
+                    </div>
+                </div>
+
+                <div style='display:grid;grid-template-columns:1fr 1fr;gap:16px;'>
+                    <div style='background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);
+                                border-radius:8px;padding:12px;'>
+                        <div style='font-size:0.6rem;color:#00ff88;text-transform:uppercase;
+                                    letter-spacing:0.12em;margin-bottom:8px;
+                                    font-family:JetBrains Mono,monospace;'>
+                            AI Agent Layer (IRIS)
+                        </div>
+                        <div style='font-family:JetBrains Mono,monospace;'>
+                            <div style='font-size:0.8rem;color:#e6edf3;margin-bottom:4px;'>
+                                Agent: <span style='color:#00ff88;'>{c.agent_id[:28] or "demo-agent"}</span>
+                            </div>
+                            <div style='font-size:0.8rem;color:#e6edf3;margin-bottom:4px;'>
+                                TTP: <span style='color:#ff4757;'>{c.ttp_id}</span>
+                            </div>
+                            <div style='font-size:0.8rem;color:#e6edf3;'>
+                                Risk: <span style='color:{risk_color};font-weight:700;'>
+                                    {c.iris_alert.get("risk_score", 0)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style='background:rgba(0,210,255,0.04);border:1px solid rgba(0,210,255,0.15);
+                                border-radius:8px;padding:12px;'>
+                        <div style='font-size:0.6rem;color:#00d2ff;text-transform:uppercase;
+                                    letter-spacing:0.12em;margin-bottom:8px;
+                                    font-family:JetBrains Mono,monospace;'>
+                            Cloud Layer (CloudTrail)
+                        </div>
+                        {cloud_rows}
+                    </div>
+                </div>
+
+                <div style='margin-top:12px;'>
+                    <span style='font-size:0.6rem;color:#484f58;text-transform:uppercase;
+                                 letter-spacing:0.1em;font-family:JetBrains Mono,monospace;
+                                 margin-right:8px;'>MITRE ATT&CK</span>
+                    {mitre_badges}
+                    <span style='font-size:0.6rem;color:#484f58;font-family:JetBrains Mono,
+                                 monospace;margin-left:12px;'>
+                        {len(c.cloud_events)} cloud events · ±{c.window_sec}s window
+                    </span>
+                </div>
+            </div>""", unsafe_allow_html=True)
 
 # Auto refresh
 if auto:
