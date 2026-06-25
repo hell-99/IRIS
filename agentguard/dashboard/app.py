@@ -1106,100 +1106,43 @@ elif page == "XDR Correlations":
         # Correlation cards
         st.markdown("<div class='sec'>// confirmed cross-layer campaigns</div>", unsafe_allow_html=True)
         for c in correlations:
-            sev_bc = "badge-red" if c.severity == "CRITICAL" else \
-                     "badge-amber" if c.severity == "HIGH" else "badge-blue"
-            sev_color = "#ff4757" if c.severity == "CRITICAL" else \
-                        "#ffa502" if c.severity == "HIGH" else "#00d2ff"
+            sev_bc    = "badge-red" if c.severity == "CRITICAL" else "badge-amber" if c.severity == "HIGH" else "badge-blue"
+            sev_color = "#ff4757" if c.severity == "CRITICAL" else "#ffa502" if c.severity == "HIGH" else "#00d2ff"
             risk_color = threat_color(c.composite_risk)
 
-            def _sev_color(s):
-                return "#ff4757" if s == "CRITICAL" else "#ffa502" if s == "HIGH" else "#00d2ff"
-            cloud_rows = "".join(
-                "<div style='font-family:JetBrains Mono,monospace;font-size:0.75rem;"
-                "padding:4px 0;border-bottom:1px solid rgba(33,38,45,0.5);'>"
-                "<span style='color:#00d2ff;min-width:280px;display:inline-block;'>"
-                + e["event_name"] +
-                "</span><span style='color:#484f58;margin-left:12px;'>" + e["tactic"] +
-                "</span><span style='color:" + _sev_color(e["severity"]) + ";margin-left:12px;'>"
-                + e["severity"] + "</span></div>"
-                for e in c.cloud_events
+            def _sc(s): return "#ff4757" if s=="CRITICAL" else "#ffa502" if s=="HIGH" else "#00d2ff"
+            cloud_rows = "".join("<div style='font-family:JetBrains Mono,monospace;font-size:0.75rem;padding:4px 0;border-bottom:1px solid rgba(33,38,45,0.5);'><span style='color:#00d2ff;min-width:260px;display:inline-block;'>" + e["event_name"] + "</span><span style='color:#484f58;margin-left:10px;'>" + e["tactic"] + "</span><span style='color:" + _sc(e["severity"]) + ";margin-left:10px;'>" + e["severity"] + "</span></div>" for e in c.cloud_events)
+            mitre_badges = "".join("<span class='badge badge-blue' style='margin-right:4px;'>" + m + "</span>" for m in c.mitre_ids)
+            agent_id_str = (c.agent_id or "demo-agent")[:28]
+            iris_risk    = str(c.iris_alert.get("risk_score", 0))
+            n_cloud      = str(len(c.cloud_events))
+            win          = str(c.window_sec)
+
+            card = (
+                "<div style='background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem;margin-bottom:14px;border-top:2px solid " + sev_color + ";'>"
+                + "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;'>"
+                + "<div><span style='font-size:0.9rem;font-weight:600;margin-right:8px;font-family:JetBrains Mono,monospace;'>Campaign " + c.correlation_id + "</span>"
+                + "<span class='badge " + sev_bc + "'>" + c.severity + "</span>"
+                + "<span class='badge badge-blue' style='margin-left:4px;'>" + c.ttp_id + "</span>"
+                + "<span style='margin-left:6px;padding:2px 8px;border-radius:4px;background:rgba(255,165,2,0.12);color:#ffa502;font-size:0.68rem;font-family:JetBrains Mono,monospace;'>Stage " + str(c.kc_stage) + " — " + c.kc_phase + "</span></div>"
+                + "<div style='font-family:JetBrains Mono,monospace;font-size:1.6rem;font-weight:700;color:" + risk_color + ";'>" + str(c.composite_risk) + "</div></div>"
+                + "<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px;'>"
+                + "<div style='background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);border-radius:8px;padding:12px;'>"
+                + "<div style='font-size:0.6rem;color:#00ff88;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-family:JetBrains Mono,monospace;'>AI Agent Layer (IRIS)</div>"
+                + "<div style='font-family:JetBrains Mono,monospace;font-size:0.8rem;color:#e6edf3;line-height:1.8;'>"
+                + "Agent: <span style='color:#00ff88;'>" + agent_id_str + "</span><br>"
+                + "TTP: <span style='color:#ff4757;'>" + c.ttp_id + "</span><br>"
+                + "Risk: <span style='color:" + risk_color + ";font-weight:700;'>" + iris_risk + "</span></div></div>"
+                + "<div style='background:rgba(0,210,255,0.04);border:1px solid rgba(0,210,255,0.15);border-radius:8px;padding:12px;'>"
+                + "<div style='font-size:0.6rem;color:#00d2ff;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-family:JetBrains Mono,monospace;'>Cloud Layer (CloudTrail)</div>"
+                + cloud_rows + "</div></div>"
+                + "<div style='margin-top:12px;'>"
+                + "<span style='font-size:0.6rem;color:#484f58;text-transform:uppercase;letter-spacing:0.1em;font-family:JetBrains Mono,monospace;margin-right:8px;'>MITRE ATT&amp;CK</span>"
+                + mitre_badges
+                + "<span style='font-size:0.6rem;color:#484f58;font-family:JetBrains Mono,monospace;margin-left:12px;'>" + n_cloud + " cloud events · ±" + win + "s window</span>"
+                + "</div></div>"
             )
-
-            mitre_badges = " ".join(
-                f"<span class='badge badge-blue'>{m}</span>"
-                for m in c.mitre_ids
-            )
-
-            st.markdown(f"""
-            <div style='background:var(--surface);border:1px solid var(--border);
-                        border-radius:10px;padding:1.4rem;margin-bottom:14px;
-                        border-top:2px solid {sev_color};'>
-                <div style='display:flex;justify-content:space-between;
-                            align-items:center;margin-bottom:14px;'>
-                    <div>
-                        <span style='font-size:0.9rem;font-weight:600;margin-right:8px;
-                                     font-family:JetBrains Mono,monospace;'>
-                            Campaign {c.correlation_id}
-                        </span>
-                        <span class='badge {sev_bc}'>{c.severity}</span>
-                        <span class='badge badge-blue' style='margin-left:4px;'>{c.ttp_id}</span>
-                        <span style='margin-left:6px;padding:2px 8px;border-radius:4px;
-                                     background:rgba(255,165,2,0.12);color:#ffa502;
-                                     font-size:0.68rem;font-family:JetBrains Mono,monospace;'>
-                            Stage {c.kc_stage} — {c.kc_phase}
-                        </span>
-                    </div>
-                    <div style='font-family:JetBrains Mono,monospace;font-size:1.6rem;
-                                font-weight:700;color:{risk_color};'>
-                        {c.composite_risk}
-                    </div>
-                </div>
-
-                <div style='display:grid;grid-template-columns:1fr 1fr;gap:16px;'>
-                    <div style='background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);
-                                border-radius:8px;padding:12px;'>
-                        <div style='font-size:0.6rem;color:#00ff88;text-transform:uppercase;
-                                    letter-spacing:0.12em;margin-bottom:8px;
-                                    font-family:JetBrains Mono,monospace;'>
-                            AI Agent Layer (IRIS)
-                        </div>
-                        <div style='font-family:JetBrains Mono,monospace;'>
-                            <div style='font-size:0.8rem;color:#e6edf3;margin-bottom:4px;'>
-                                Agent: <span style='color:#00ff88;'>{c.agent_id[:28] or "demo-agent"}</span>
-                            </div>
-                            <div style='font-size:0.8rem;color:#e6edf3;margin-bottom:4px;'>
-                                TTP: <span style='color:#ff4757;'>{c.ttp_id}</span>
-                            </div>
-                            <div style='font-size:0.8rem;color:#e6edf3;'>
-                                Risk: <span style='color:{risk_color};font-weight:700;'>
-                                    {c.iris_alert.get("risk_score", 0)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style='background:rgba(0,210,255,0.04);border:1px solid rgba(0,210,255,0.15);
-                                border-radius:8px;padding:12px;'>
-                        <div style='font-size:0.6rem;color:#00d2ff;text-transform:uppercase;
-                                    letter-spacing:0.12em;margin-bottom:8px;
-                                    font-family:JetBrains Mono,monospace;'>
-                            Cloud Layer (CloudTrail)
-                        </div>
-                        {cloud_rows}
-                    </div>
-                </div>
-
-                <div style='margin-top:12px;'>
-                    <span style='font-size:0.6rem;color:#484f58;text-transform:uppercase;
-                                 letter-spacing:0.1em;font-family:JetBrains Mono,monospace;
-                                 margin-right:8px;'>MITRE ATT&CK</span>
-                    {mitre_badges}
-                    <span style='font-size:0.6rem;color:#484f58;font-family:JetBrains Mono,
-                                 monospace;margin-left:12px;'>
-                        {len(c.cloud_events)} cloud events · ±{c.window_sec}s window
-                    </span>
-                </div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(card, unsafe_allow_html=True)
 
 # Auto refresh
 if auto:
