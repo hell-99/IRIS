@@ -1095,9 +1095,11 @@ elif page == "XDR Correlations":
         ))
         fig_risk.update_layout(
             title=dict(text="Composite Risk Score (IRIS + CloudTrail)", font=dict(size=11, color="#484f58")),
-            yaxis=dict(range=[0, 100], gridcolor="#21262d"),
-            xaxis=dict(gridcolor="#21262d"),
-            **PLOT
+            yaxis=dict(range=[0, 100], gridcolor="#21262d", showgrid=True, tickfont=dict(size=9)),
+            xaxis=dict(gridcolor="#21262d", showgrid=True, tickfont=dict(size=9)),
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#e6edf3", family="JetBrains Mono", size=10),
+            margin=dict(l=0, r=0, t=32, b=0),
         )
         st.plotly_chart(fig_risk, use_container_width=True)
 
