@@ -972,7 +972,7 @@ elif page == "Live Feed":
             label= e.get("label","")
             ttp= e.get("ttp_name","") or ""
             ts = e.get("timestamp","")[:19]
-            icon = "yayy allowed" if allowed else "noooo not allowed"
+            icon = "✓" if allowed else "✗"
             ic = "#00ff88" if allowed else "#ff4757"
             rc = threat_color(risk)
             ttp_html = (
