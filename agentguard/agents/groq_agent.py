@@ -39,7 +39,7 @@ console = Console()
 # llama-3.1-8b-instant: 1M TPD free tier vs 100K for 70b
 # Still reliable tool calling on Groq infrastructure
 # 70b reserved for intent analysis where reasoning depth matters
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.3-70b-specdec"
 
 # Canonical parameter names for each tool
 PARAM_MAP = {
