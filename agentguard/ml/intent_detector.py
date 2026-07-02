@@ -21,7 +21,7 @@ load_dotenv()
 console  = Console()
 DB_PATH  = Path("data/logs/agentguard.db")
 
-PRIMARY_MODEL  = "llama-3.3-70b-versatile"
+PRIMARY_MODEL  = "llama-3.3-70b-specdec"
 FALLBACK_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 INTENT_SYSTEM_PROMPT = """You are a security analyst AI. Given an agent's task and role,
