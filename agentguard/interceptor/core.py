@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from config import AGENT_ROLES, MITRE_ATLAS_TTPS, RISK_THRESHOLD
 from agents.tools import TOOL_REGISTRY, TOOL_SENSITIVITY
+from security.tool_sandbox import get_sandbox, SandboxViolation
 
 DB_PATH = Path("data/logs/agentguard.db")
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -174,11 +175,21 @@ def intercept(agent_id: str, agent_role: str, session_id: str,
     # Compute risk
     risk_score, ttp = _compute_risk(agent_role, tool_name, allowed, call_count, blocked_count)
 
-    # Execute tool (or block)
+    # Execute tool (or block) — allowed calls run inside the subprocess sandbox
+    sandbox_meta = None
     if allowed:
         tool_fn = TOOL_REGISTRY.get(tool_name)
-        result  = tool_fn(**tool_args) if tool_fn else {"error": f"Unknown tool: {tool_name}"}
-    else: result  = {"blocked": True, "reason": f"Agent '{agent_role}' not permitted to call '{tool_name}'"}
+        if tool_fn:
+            try:
+                result = get_sandbox().run(tool_name, tool_fn, tool_args)
+                sandbox_meta = result.pop("sandbox", None) if isinstance(result, dict) else None
+            except SandboxViolation as sv:
+                result = {"error": f"Sandbox violation: {sv.reason}", "sandboxed": True}
+                allowed = False
+        else:
+            result = {"error": f"Unknown tool: {tool_name}"}
+    else:
+        result = {"blocked": True, "reason": f"Agent '{agent_role}' not permitted to call '{tool_name}'"}
 
     latency_ms = (time.time() - t_start) * 1000
 
@@ -201,6 +212,7 @@ def intercept(agent_id: str, agent_role: str, session_id: str,
         "ttp_id": ttp_info.get("id"),
         "ttp_name": ttp_info.get("name"),
         "latency_ms": latency_ms,
+        "sandbox_enforced": int(sandbox_meta is not None),
     }
 
     # Append to tamper-evident ledger

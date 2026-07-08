@@ -13,7 +13,19 @@ services:
       - DB_PATH=data/logs/agentguard.db
       - RISK_THRESHOLD=70.0
       - GROQ_API_KEY=${GROQ_API_KEY}
+      # Auth0 M2M agent identity (set OKTA_ENABLED=true to enforce)
+      - OKTA_ENABLED=${OKTA_ENABLED:-false}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN:-}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE:-https://iris-security-api}
     command: sh start_api.sh
+    # Kernel-level hardening
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:docker/seccomp/iris.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE   # only capability needed: bind port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 15s
@@ -35,6 +47,14 @@ services:
       - API_BASE_URL=http://iris-api:8000
       - GROQ_API_KEY=${GROQ_API_KEY}
     command: sh start_dashboard.sh
+    # Kernel-level hardening
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:docker/seccomp/iris.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE   # only capability needed: bind port 8501
     depends_on:
       iris-api:
         condition: service_healthy

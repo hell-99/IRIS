@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System dependencies
+# System dependencies + libseccomp for kernel-level syscall filtering
 RUN apt-get update && apt-get install -y \
     gcc curl git \
+    libseccomp-dev libseccomp2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -37,3 +38,7 @@ ENV DB_PATH=data/logs/agentguard.db \
     PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000 8501
+
+# Run as non-root user — reduces blast radius if container is compromised
+RUN groupadd -r iris && useradd -r -g iris iris
+USER iris
