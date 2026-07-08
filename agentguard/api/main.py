@@ -29,6 +29,9 @@ from typing import Optional
 _root=pathlib.Path(__file__).parent.parent
 sys.path.insert(0,str(_root))
 
+from dotenv import load_dotenv
+load_dotenv(_root / ".env")
+
 from fastapi import FastAPI, HTTPException,WebSocket, WebSocketDisconnect, Query, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -948,6 +951,97 @@ def user_sessions(
         ]
     except Exception as e:
         return []
+
+# ── Okta M2M Agent Identity ──────────────────────────────────────────────────
+#
+# Agents authenticate with Okta (client credentials flow) and call this
+# endpoint instead of the demo intercept. IRIS validates the RS256 token via
+# Okta's JWKS endpoint and derives the agent role from the token's scopes —
+# the caller cannot supply or override the role.
+#
+# Requires env vars:  OKTA_ENABLED=true  OKTA_DOMAIN=...  OKTA_AUDIENCE=...
+
+from security.okta_validator import validate_agent_token, OktaValidationError, OKTA_ENABLED
+from interceptor.core import intercept as _intercept
+
+
+class AgentInterceptRequest(BaseModel):
+    tool_name:  str
+    tool_args:  dict
+    session_id: str
+    label:      str = "benign"
+
+
+@app.post("/api/agent/intercept", tags=["Agent Identity"])
+def agent_intercept(
+    req:           AgentInterceptRequest,
+    authorization: str = Header(None),
+):
+    """
+    Okta-authenticated tool interception endpoint.
+
+    The agent presents its Okta access token (client credentials grant).
+    IRIS validates the token cryptographically and extracts the agent role
+    from the granted scopes — the caller cannot supply or forge the role.
+
+    Token scopes → IRIS roles:
+      iris.admin   → admin   (all tools)
+      iris.analyst → analyst (read_file, query_db, call_api)
+      iris.reader  → reader  (read_file only)
+
+    When OKTA_ENABLED=false this endpoint returns 503 (use /api/intercept for demo mode).
+    """
+    if not OKTA_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="Okta agent identity is not enabled. Set OKTA_ENABLED=true and configure OKTA_DOMAIN.",
+        )
+
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization: Bearer <okta_token> required")
+
+    try:
+        agent_id, agent_role, token_payload = validate_agent_token(authorization)
+    except OktaValidationError as e:
+        raise HTTPException(status_code=401, detail=f"Okta token invalid: {e}")
+
+    result = _intercept(
+        agent_id   = agent_id,
+        agent_role = agent_role,
+        session_id = req.session_id,
+        tool_name  = req.tool_name,
+        tool_args  = req.tool_args,
+        label      = req.label,
+    )
+
+    return {
+        **result,
+        "identity": {
+            "source":     "okta",
+            "agent_id":   agent_id,
+            "agent_role": agent_role,
+            "client_id":  token_payload.get("sub"),
+            "scopes":     token_payload.get("scp", ""),
+            "issuer":     token_payload.get("iss"),
+        },
+    }
+
+
+@app.get("/api/agent/identity/status", tags=["Agent Identity"])
+def agent_identity_status():
+    """Returns whether Okta agent identity enforcement is active."""
+    import os
+    return {
+        "okta_enabled":  OKTA_ENABLED,
+        "okta_domain":   os.getenv("OKTA_DOMAIN", "not configured"),
+        "okta_audience": os.getenv("OKTA_AUDIENCE", "api://default"),
+        "scope_mapping": {
+            "iris.admin":   "admin",
+            "iris.analyst": "analyst",
+            "iris.reader":  "reader",
+        },
+    }
+
 
 @app.get("/api/user/events", tags=["User Data"])
 def user_events(
