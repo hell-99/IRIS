@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agentguard/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "agentguard/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - name: Ruff - correctness gate (syntax errors, undefined names)
+        working-directory: agentguard
+        run: ruff check --select=E9,F821,F822,F823 .
+      - name: Ruff - full report (style, unused imports)
+        if: always()
+        working-directory: agentguard
+        continue-on-error: true
+        run: ruff check .
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install bandit pip-audit
+      - name: Bandit SAST - high severity/confidence gate
+        working-directory: agentguard
+        run: bandit -r . -x ./data,./exports,./demo_data -lll -iii
+      - name: Bandit SAST - full report
+        if: always()
+        working-directory: agentguard
+        continue-on-error: true
+        run: bandit -r . -x ./data,./exports,./demo_data
+      - name: pip-audit - dependency vulnerability report
+        if: always()
+        working-directory: agentguard
+        continue-on-error: true
+        run: pip-audit -r requirements.txt
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build IRIS API image
+        working-directory: agentguard
+        run: docker build -f docker/Dockerfile -t iris-api:ci .
