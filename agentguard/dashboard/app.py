@@ -373,7 +373,7 @@ with st.sidebar:
     page = st.radio("", [
         "⬡  Overview","⬡  Sessions","⬡  Detections",
         "⬡  Collusion","⬡  Attack Graphs","⬡  Live Feed",
-        "⬡  XDR Correlations"
+        "⬡  XDR Correlations","⬡  Malware Scan"
     ], label_visibility="collapsed")
     page = page.replace("⬡  ","")
 
@@ -1143,6 +1143,166 @@ elif page == "XDR Correlations":
                 + "</div></div>"
             )
             st.markdown(card, unsafe_allow_html=True)
+
+# MALWARE SCAN
+elif page == "Malware Scan":
+    st.markdown("<div class='sec'>// yara-based malware detection · t1496 resource hijacking</div>",
+                unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style='background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.25);
+                border-radius:10px;padding:14px 18px;margin-bottom:20px;
+                font-family:JetBrains Mono,monospace;font-size:0.78rem;color:#ff4757;'>
+        <b>YARA ENGINE</b> &nbsp;·&nbsp; Static malware detection using custom rules written from
+        hands-on dynamic/static analysis of Linux ELF cryptominer samples.
+        Rules target <b>T1496 Resource Hijacking</b> (Stratum protocol indicators, XMRig pool
+        domains, RandomX strings). Upload any binary to scan.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Rules status
+    rules_info = fetch_user("/api/scan/rules", {})
+    if rules_info and rules_info.get("rule_files"):
+        rf = rules_info["rule_files"]
+        all_rule_names = []
+        for rfile in rf:
+            all_rule_names.extend(rfile.get("rules", []))
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            st.markdown(f"""
+            <div class='kpi'>
+                <div class='kpi-accent' style='background:#ff4757;'></div>
+                <div class='kpi-val' style='color:#ff4757;'>{len(rf)}</div>
+                <div class='kpi-label'>Rule Files Loaded</div>
+            </div>""", unsafe_allow_html=True)
+        with r2:
+            st.markdown(f"""
+            <div class='kpi'>
+                <div class='kpi-accent' style='background:#ffa502;'></div>
+                <div class='kpi-val' style='color:#ffa502;'>{len(all_rule_names)}</div>
+                <div class='kpi-label'>YARA Rules Active</div>
+            </div>""", unsafe_allow_html=True)
+        with r3:
+            mitre_ids = set()
+            for rfile in rf:
+                m = rfile.get("mitre_attack","")
+                if m: mitre_ids.add(m)
+            st.markdown(f"""
+            <div class='kpi'>
+                <div class='kpi-accent' style='background:#00ff88;'></div>
+                <div class='kpi-val' style='color:#00ff88;'>{len(mitre_ids)}</div>
+                <div class='kpi-label'>MITRE Techniques</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='sec'>// active detection rules</div>", unsafe_allow_html=True)
+        for rfile in rf:
+            for rule_name in rfile.get("rules", []):
+                mitre = rfile.get("mitre_attack","")
+                mitre_badge = (
+                    f"<span class='badge badge-red' style='margin-left:8px;'>{mitre}</span>"
+                    if mitre else ""
+                )
+                st.markdown(f"""
+                <div class='ev'>
+                    <span style='color:#00ff88;min-width:12px;font-weight:700;'>▶</span>
+                    <span style='color:#e6edf3;min-width:260px;font-family:JetBrains Mono,monospace;'>
+                        {rule_name}
+                    </span>
+                    <span style='color:#484f58;flex:1;font-size:0.75rem;'>
+                        {rfile.get("description","")}
+                    </span>
+                    {mitre_badge}
+                </div>""", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='sec'>// upload binary for scan</div>", unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        "Upload binary to scan (ELF, PE, scripts)",
+        type=None,
+        help="Runs all loaded YARA rules. Safe, the file is not executed.",
+    )
+
+    if uploaded:
+        with st.spinner("Scanning..."):
+            import requests as _req
+            try:
+                resp = _req.post(
+                    f"{API_BASE}/api/scan/file",
+                    files={"file": (uploaded.name, uploaded.getvalue(), "application/octet-stream")},
+                    timeout=15,
+                )
+                result = resp.json()
+            except Exception as e:
+                result = {"error": str(e), "scanned": False}
+
+        if result.get("error") and not result.get("scanned"):
+            st.error(f"Scan error: {result['error']}")
+        else:
+            threat = result.get("threat_level","UNKNOWN")
+            threat_color_map = {"MALICIOUS":"#ff4757","SUSPICIOUS":"#ffa502","CLEAN":"#00ff88","UNKNOWN":"#484f58"}
+            tc = threat_color_map.get(threat,"#484f58")
+
+            st.markdown(f"""
+            <div style='background:rgba(0,0,0,0.3);border:2px solid {tc};border-radius:10px;
+                        padding:20px 24px;margin:16px 0;font-family:JetBrains Mono,monospace;'>
+                <div style='font-size:1.4rem;font-weight:700;color:{tc};margin-bottom:12px;'>
+                    {threat}
+                </div>
+                <div style='color:#e6edf3;font-size:0.8rem;line-height:1.9;'>
+                    <b>File:</b> {result.get("filename","")}<br>
+                    <b>SHA-256:</b> <span style='color:#484f58;'>{result.get("sha256","")}</span><br>
+                    <b>MD5:</b> <span style='color:#484f58;'>{result.get("md5","")}</span><br>
+                    <b>Size:</b> {result.get("size_bytes",0):,} bytes<br>
+                    <b>Rules matched:</b> <span style='color:{tc};font-weight:600;'>{result.get("match_count",0)}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if result.get("matches"):
+                st.markdown("<div class='sec'>// rule matches</div>", unsafe_allow_html=True)
+                for match in result["matches"]:
+                    mitre = match.get("mitre_attack","")
+                    mitre_badge = (
+                        f"<span class='badge badge-red'>{mitre}</span>"
+                        if mitre else ""
+                    )
+                    strings_html = ""
+                    for s in match.get("strings_matched", [])[:6]:
+                        strings_html += (
+                            f"<div style='font-size:0.7rem;color:#484f58;padding:2px 0;'>"
+                            f"<span style='color:#ffa502;'>{s['identifier']}</span>"
+                            f" @ {s['offset']} → "
+                            f"<span style='color:#e6edf3;'>{bytes.fromhex(s['data']).decode('ascii','replace')[:60]}</span>"
+                            f"</div>"
+                        )
+                    st.markdown(f"""
+                    <div style='background:rgba(255,71,87,0.05);border:1px solid rgba(255,71,87,0.2);
+                                border-radius:8px;padding:14px 18px;margin-bottom:10px;'>
+                        <div style='font-family:JetBrains Mono,monospace;font-size:0.85rem;
+                                    font-weight:600;color:#ff4757;margin-bottom:4px;'>
+                            {match["rule"]} {mitre_badge}
+                        </div>
+                        <div style='font-size:0.78rem;color:#484f58;margin-bottom:10px;'>
+                            {match.get("description","")}
+                        </div>
+                        {strings_html}
+                    </div>""", unsafe_allow_html=True)
+            else:
+                st.success("No YARA rules matched. File appears clean.")
+
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style='background:rgba(0,0,0,0.2);border:1px solid #21262d;border-radius:8px;
+                padding:14px 18px;font-family:JetBrains Mono,monospace;font-size:0.72rem;
+                color:#484f58;line-height:1.8;'>
+        <b style='color:#e6edf3;'>Detection basis · XMRig v6.21.3 (SHA256: 72ac2877...)</b><br>
+        Rules derived from hands-on static + dynamic analysis of live Linux ELF cryptominer sample.<br>
+        Static: readelf, strings, file. Dynamic: strace via qemu-x86_64-static on Ubuntu 22.04 ARM64 VM.<br>
+        <b style='color:#ffa502;'>MITRE ATT&CK:</b> T1496 Resource Hijacking · T1082 System Discovery · T1071.001 App Layer Protocol
+    </div>
+    """, unsafe_allow_html=True)
 
 # Auto refresh
 if auto:
