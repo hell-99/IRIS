@@ -59,6 +59,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Prometheus metrics ──────────────────────────────────────────────────────
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import Response
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
+iris_tool_calls_total = Gauge("iris_tool_calls_total", "Total tool calls processed")
+iris_tool_calls_blocked = Gauge("iris_tool_calls_blocked", "Tool calls blocked by policy")
+iris_sessions_total = Gauge("iris_sessions_total", "Total agent sessions")
+iris_detections_suspicious = Gauge("iris_detections_suspicious", "Suspicious intent-action divergences detected")
+iris_avg_latency_ms = Gauge("iris_avg_latency_ms", "Average tool-call interception latency in milliseconds")
+
+
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
@@ -146,6 +160,23 @@ def get_db_for_request(authorization: str = Header(None)):
 
 def row_to_dict(cursor, row):
     return {col[0]:val for col,val in zip(cursor.description, row)}
+
+
+@app.get("/metrics/iris", include_in_schema=False)
+def iris_metrics(db=Depends(get_db_for_request)):
+    """Domain-specific security metrics, same queries as /api/metrics, in Prometheus text format."""
+    con = db
+    iris_tool_calls_total.set(con.execute("SELECT COUNT(*) FROM tool_calls").fetchone()[0])
+    iris_tool_calls_blocked.set(con.execute("SELECT COUNT(*) FROM tool_calls WHERE allowed=0").fetchone()[0])
+    iris_sessions_total.set(con.execute("SELECT COUNT(*) FROM agent_sessions").fetchone()[0])
+    try:
+        iris_detections_suspicious.set(
+            con.execute("SELECT COUNT(*) FROM divergence_analysis WHERE verdict='SUSPICIOUS'").fetchone()[0]
+        )
+    except Exception:
+        pass
+    iris_avg_latency_ms.set(con.execute("SELECT AVG(latency_ms) FROM tool_calls").fetchone()[0] or 0)
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 # Root/health
