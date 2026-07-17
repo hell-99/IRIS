@@ -1073,3 +1073,137 @@ def user_events(
         ]
     except Exception:
         return []
+
+
+# ── YARA Malware Scanning ─────────────────────────────────────────────────────
+
+import hashlib
+import tempfile
+from fastapi import UploadFile, File
+
+YARA_RULES_DIR = pathlib.Path(__file__).parent.parent.parent / "malware-lab" / "rules"
+_compiled_rules = None
+
+
+def _load_yara_rules():
+    global _compiled_rules
+    if _compiled_rules is not None:
+        return _compiled_rules
+    try:
+        import yara
+        rule_files = list(YARA_RULES_DIR.glob("*.yar")) + list(YARA_RULES_DIR.glob("*.yara"))
+        if not rule_files:
+            return None
+        filepaths = {f.stem: str(f) for f in rule_files}
+        _compiled_rules = yara.compile(filepaths=filepaths)
+        return _compiled_rules
+    except ImportError:
+        return None
+
+
+@app.post("/api/scan/file", tags=["Malware Detection"])
+async def scan_file(file: UploadFile = File(...)):
+    """
+    YARA-based malware scan for uploaded files.
+    Runs compiled rules from malware-lab/rules/ against the uploaded binary.
+    Returns matches with MITRE ATT&CK technique tags.
+    """
+    content = await file.read()
+    sha256 = hashlib.sha256(content).hexdigest()
+    md5 = hashlib.md5(content, usedforsecurity=False).hexdigest()
+
+    rules = _load_yara_rules()
+    if rules is None:
+        return {
+            "filename": file.filename,
+            "sha256": sha256,
+            "md5": md5,
+            "size_bytes": len(content),
+            "scanned": False,
+            "error": "YARA rules not available (install yara-python or check rules directory)",
+            "matches": [],
+        }
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        matches = rules.match(tmp_path)
+    finally:
+        pathlib.Path(tmp_path).unlink(missing_ok=True)
+
+    match_results = []
+    for m in matches:
+        mitre = m.meta.get("mitre_attack", "")
+        match_results.append({
+            "rule": m.rule,
+            "namespace": m.namespace,
+            "description": m.meta.get("description", ""),
+            "mitre_attack": mitre,
+            "mitre_url": f"https://attack.mitre.org/techniques/{mitre.replace('.', '/')}/" if mitre else "",
+            "tags": list(m.tags),
+            "strings_matched": [
+                {"offset": hex(s.instances[0].offset), "identifier": s.identifier, "data": s.instances[0].matched_data[:64].hex()}
+                for s in m.strings
+                if s.instances
+            ],
+        })
+
+    threat_level = "CLEAN"
+    if match_results:
+        threat_level = "MALICIOUS" if any(
+            "cryptominer" in r["rule"].lower() or r["mitre_attack"] for r in match_results
+        ) else "SUSPICIOUS"
+
+    return {
+        "filename": file.filename,
+        "sha256": sha256,
+        "md5": md5,
+        "size_bytes": len(content),
+        "scanned": True,
+        "threat_level": threat_level,
+        "match_count": len(match_results),
+        "matches": match_results,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/api/scan/rules", tags=["Malware Detection"])
+def list_yara_rules():
+    """List all loaded YARA rules and their metadata."""
+    rule_files = list(YARA_RULES_DIR.glob("*.yar")) + list(YARA_RULES_DIR.glob("*.yara"))
+    rules_info = []
+    for rf in rule_files:
+        try:
+            content = rf.read_text()
+            meta_lines = {}
+            in_meta = False
+            for line in content.splitlines():
+                line = line.strip()
+                if line == "meta:":
+                    in_meta = True
+                    continue
+                if in_meta and line.startswith("strings:"):
+                    break
+                if in_meta and "=" in line:
+                    k, _, v = line.partition("=")
+                    meta_lines[k.strip()] = v.strip().strip('"')
+            import re
+            rule_names = re.findall(r'^rule\s+(\w+)', content, re.MULTILINE)
+            rules_info.append({
+                "file": rf.name,
+                "rules": rule_names,
+                "description": meta_lines.get("description", ""),
+                "author": meta_lines.get("author", ""),
+                "mitre_attack": meta_lines.get("mitre_attack", ""),
+                "date": meta_lines.get("date", ""),
+            })
+        except Exception as e:
+            rules_info.append({"file": rf.name, "error": str(e)})
+
+    return {
+        "rules_directory": str(YARA_RULES_DIR),
+        "rule_files": rules_info,
+        "total_files": len(rule_files),
+    }
