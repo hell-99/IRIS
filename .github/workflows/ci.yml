@@ -52,6 +52,21 @@ jobs:
         working-directory: agentguard
         continue-on-error: true
         run: pip-audit -r requirements.txt
+      - name: Trivy - filesystem vulnerability scan
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: agentguard
+          severity: HIGH,CRITICAL
+      - name: Trivy - Dockerfile misconfiguration scan
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: agentguard/docker
 
   docker-build:
     runs-on: ubuntu-latest
