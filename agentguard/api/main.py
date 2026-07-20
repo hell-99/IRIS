@@ -1112,7 +1112,7 @@ import hashlib
 import tempfile
 from fastapi import UploadFile, File
 
-YARA_RULES_DIR = pathlib.Path(__file__).parent.parent.parent / "malware-lab" / "rules"
+YARA_RULES_DIR = pathlib.Path(__file__).parent.parent.parent / "malware-analysis-lab" / "rules"
 _compiled_rules = None
 
 
@@ -1229,6 +1229,9 @@ def list_yara_rules():
                 "author": meta_lines.get("author", ""),
                 "mitre_attack": meta_lines.get("mitre_attack", ""),
                 "date": meta_lines.get("date", ""),
+                "validated_against": meta_lines.get("validated_against", ""),
+                "false_positive_corpus": meta_lines.get("false_positive_corpus", ""),
+                "false_positive_rate": meta_lines.get("false_positive_rate", ""),
             })
         except Exception as e:
             rules_info.append({"file": rf.name, "error": str(e)})

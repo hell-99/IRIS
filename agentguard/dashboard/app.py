@@ -1215,6 +1215,29 @@ elif page == "Malware Scan":
                     {mitre_badge}
                 </div>""", unsafe_allow_html=True)
 
+        validated_rules = [rfile for rfile in rf if rfile.get("false_positive_rate")]
+        if validated_rules:
+            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='sec'>// coverage &amp; precision (empirically validated)</div>",
+                        unsafe_allow_html=True)
+            for rfile in validated_rules:
+                coverage = rfile.get("validated_against", "")
+                coverage_line = (
+                    f"<div style='color:#484f58;font-size:0.72rem;margin-top:2px;'>Coverage: {coverage}</div>"
+                    if coverage else ""
+                )
+                st.markdown(f"""
+                <div style='background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);
+                            border-radius:8px;padding:10px 14px;margin-bottom:8px;
+                            font-family:JetBrains Mono,monospace;font-size:0.76rem;'>
+                    <b style='color:#00ff88;'>{rfile.get("file","")}</b>
+                    <div style='color:#e6edf3;font-size:0.72rem;margin-top:2px;'>
+                        Precision: {rfile.get("false_positive_rate","")} false positives
+                        &nbsp;·&nbsp; Corpus: {rfile.get("false_positive_corpus","")}
+                    </div>
+                    {coverage_line}
+                </div>""", unsafe_allow_html=True)
+
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='sec'>// upload binary for scan</div>", unsafe_allow_html=True)
 
