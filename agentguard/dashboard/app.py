@@ -1218,13 +1218,18 @@ elif page == "Malware Scan":
         validated_rules = [rfile for rfile in rf if rfile.get("false_positive_rate")]
         if validated_rules:
             st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-            st.markdown("<div class='sec'>// coverage &amp; precision (empirically validated)</div>",
+            st.markdown("<div class='sec'>// coverage, precision &amp; latency (empirically validated)</div>",
                         unsafe_allow_html=True)
             for rfile in validated_rules:
                 coverage = rfile.get("validated_against", "")
                 coverage_line = (
                     f"<div style='color:#484f58;font-size:0.72rem;margin-top:2px;'>Coverage: {coverage}</div>"
                     if coverage else ""
+                )
+                latency = rfile.get("avg_scan_latency_ms", "")
+                latency_line = (
+                    f"<div style='color:#484f58;font-size:0.72rem;margin-top:2px;'>Latency (benchmarked): {latency} ms</div>"
+                    if latency else ""
                 )
                 st.markdown(f"""
                 <div style='background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);
@@ -1236,6 +1241,7 @@ elif page == "Malware Scan":
                         &nbsp;·&nbsp; Corpus: {rfile.get("false_positive_corpus","")}
                     </div>
                     {coverage_line}
+                    {latency_line}
                 </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
@@ -1278,7 +1284,8 @@ elif page == "Malware Scan":
                     <b>SHA-256:</b> <span style='color:#484f58;'>{result.get("sha256","")}</span><br>
                     <b>MD5:</b> <span style='color:#484f58;'>{result.get("md5","")}</span><br>
                     <b>Size:</b> {result.get("size_bytes",0):,} bytes<br>
-                    <b>Rules matched:</b> <span style='color:{tc};font-weight:600;'>{result.get("match_count",0)}</span>
+                    <b>Rules matched:</b> <span style='color:{tc};font-weight:600;'>{result.get("match_count",0)}</span><br>
+                    <b>Scan latency:</b> <span style='color:#484f58;'>{result.get("scan_time_ms","n/a")} ms (this request, live)</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
