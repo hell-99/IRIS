@@ -23,6 +23,7 @@ import json
 import sqlite3
 import asyncio
 import pathlib
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -61,7 +62,7 @@ app.add_middleware(
 
 # ── Prometheus metrics ──────────────────────────────────────────────────────
 from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import Response
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
@@ -71,6 +72,11 @@ iris_tool_calls_blocked = Gauge("iris_tool_calls_blocked", "Tool calls blocked b
 iris_sessions_total = Gauge("iris_sessions_total", "Total agent sessions")
 iris_detections_suspicious = Gauge("iris_detections_suspicious", "Suspicious intent-action divergences detected")
 iris_avg_latency_ms = Gauge("iris_avg_latency_ms", "Average tool-call interception latency in milliseconds")
+iris_yara_scan_latency_ms = Histogram(
+    "iris_yara_scan_latency_ms",
+    "Real per-request YARA scan duration in milliseconds (time.perf_counter around rules.match)",
+    buckets=(0.5, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000),
+)
 
 
 # WebSocket connection manager
@@ -1136,7 +1142,7 @@ def _load_yara_rules():
 async def scan_file(file: UploadFile = File(...)):
     """
     YARA-based malware scan for uploaded files.
-    Runs compiled rules from malware-lab/rules/ against the uploaded binary.
+    Runs compiled rules from malware-analysis-lab/rules/ against the uploaded binary.
     Returns matches with MITRE ATT&CK technique tags.
     """
     content = await file.read()
@@ -1159,10 +1165,13 @@ async def scan_file(file: UploadFile = File(...)):
         tmp.write(content)
         tmp_path = tmp.name
 
+    scan_start = time.perf_counter()
     try:
         matches = rules.match(tmp_path)
     finally:
         pathlib.Path(tmp_path).unlink(missing_ok=True)
+    scan_time_ms = (time.perf_counter() - scan_start) * 1000
+    iris_yara_scan_latency_ms.observe(scan_time_ms)
 
     match_results = []
     for m in matches:
@@ -1196,6 +1205,7 @@ async def scan_file(file: UploadFile = File(...)):
         "threat_level": threat_level,
         "match_count": len(match_results),
         "matches": match_results,
+        "scan_time_ms": round(scan_time_ms, 3),
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -1232,6 +1242,7 @@ def list_yara_rules():
                 "validated_against": meta_lines.get("validated_against", ""),
                 "false_positive_corpus": meta_lines.get("false_positive_corpus", ""),
                 "false_positive_rate": meta_lines.get("false_positive_rate", ""),
+                "avg_scan_latency_ms": meta_lines.get("avg_scan_latency_ms", ""),
             })
         except Exception as e:
             rules_info.append({"file": rf.name, "error": str(e)})
