@@ -1252,3 +1252,40 @@ def list_yara_rules():
         "rule_files": rules_info,
         "total_files": len(rule_files),
     }
+
+
+# ── RAG: semantic search + investigation agent ──────────────────────────────
+def get_db_path_for_request(authorization: str = Header(None)) -> str:
+    """Same auth resolution as get_db_for_request, but returns the file path (needed for Chroma)."""
+    if authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        payload = verify_token(token)
+        if payload:
+            return get_db_path_for_user(payload.get("user_id"))
+    return DB_PATH
+
+
+class SimilaritySearchRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+
+@app.post("/api/search/similar", tags=["RAG"])
+def search_similar_detections(req: SimilaritySearchRequest, db_path: str = Depends(get_db_path_for_request)):
+    """Semantic search over past detections (divergence + collusion) using local embeddings."""
+    try:
+        from rag.semantic_search import search_similar
+        results = search_similar(db_path, req.query, top_k=req.top_k)
+        return {"query": req.query, "results": results, "count": len(results)}
+    except Exception as e:
+        return {"query": req.query, "results": [], "count": 0, "error": str(e)}
+
+
+@app.post("/api/detections/{session_id}/explain", tags=["RAG"])
+def explain_detection(session_id: str, db_path: str = Depends(get_db_path_for_request)):
+    """LangGraph investigation agent: retrieves similar past incidents + MITRE ATLAS context, then generates a grounded explanation via a local LLM."""
+    try:
+        from rag.investigation_agent import investigate
+        return investigate(db_path, session_id)
+    except Exception as e:
+        return {"session_id": session_id, "found": False, "explanation": "", "error": str(e)}
