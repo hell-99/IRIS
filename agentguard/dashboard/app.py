@@ -582,6 +582,32 @@ elif page == "Sessions":
 elif page == "Detections":
     st.markdown("<div class='sec'>// intent-action divergence detections</div>",
                 unsafe_allow_html=True)
+
+    with st.expander("Semantic search (RAG over past detections)"):
+        st.caption("Searches by meaning, not exact text, using local embeddings (nomic-embed-text) "
+                   "over indexed divergence and collusion records. Requires a running IRIS API with Ollama.")
+        query = st.text_input("Find detections similar to...", key="semantic_query")
+        if st.button("Search", key="semantic_search_btn") and query:
+            with st.spinner("Embedding query and searching..."):
+                import requests as _req
+                try:
+                    resp = _req.post(f"{API_BASE}/api/search/similar",
+                                      json={"query": query, "top_k": 5}, timeout=30)
+                    sr = resp.json()
+                except Exception as e:
+                    sr = {"error": str(e), "results": []}
+            if sr.get("error"):
+                st.error(f"Search error: {sr['error']}")
+            for r in sr.get("results", []):
+                st.markdown(f"""
+                <div style='background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25);
+                            border-radius:8px;padding:10px 14px;margin-bottom:6px;
+                            font-family:JetBrains Mono,monospace;font-size:0.74rem;'>
+                    <b style='color:#a855f7;'>similarity {r.get("similarity","")}</b>
+                    &nbsp;·&nbsp; {r.get("metadata",{}).get("type","")}
+                    <div style='color:#e6edf3;margin-top:4px;white-space:pre-line;'>{r.get("document","")[:300]}</div>
+                </div>""", unsafe_allow_html=True)
+
     data = fetch_user("/api/detections",{"limit":50})
 
     if data and data.get("detections"):
@@ -685,6 +711,33 @@ elif page == "Detections":
                 </div>
                 {reason_html}
             </div>""",unsafe_allow_html=True)
+
+            if is_sus and det.get("session_id"):
+                sid = det["session_id"]
+                if st.button("Investigate (LangGraph agent)", key=f"investigate_{sid}"):
+                    with st.spinner("Retrieving similar incidents and generating explanation..."):
+                        import requests as _req
+                        try:
+                            resp = _req.post(f"{API_BASE}/api/detections/{sid}/explain", timeout=60)
+                            st.session_state[f"explain_result_{sid}"] = resp.json()
+                        except Exception as e:
+                            st.session_state[f"explain_result_{sid}"] = {"error": str(e)}
+
+                exp_result = st.session_state.get(f"explain_result_{sid}")
+                if exp_result:
+                    if exp_result.get("error"):
+                        st.error(f"Investigation error: {exp_result['error']}")
+                    else:
+                        st.markdown(f"""
+                        <div style='background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2);
+                                    border-radius:8px;padding:12px 16px;margin:8px 0 16px 0;
+                                    font-family:JetBrains Mono,monospace;font-size:0.78rem;'>
+                            <b style='color:#00ff88;'>Investigation agent explanation</b>
+                            <div style='color:#e6edf3;margin-top:6px;line-height:1.6;'>{exp_result.get("explanation","")}</div>
+                            <div style='color:#484f58;margin-top:8px;font-size:0.72rem;'>
+                                MITRE ATLAS: {exp_result.get("mitre_context","")}
+                            </div>
+                        </div>""", unsafe_allow_html=True)
     else: st.info("No detections yet. **Sign in as Demo User** to see 38 suspicious intent-action divergences caught across 131 sessions — or connect your own agents to IRIS.")
 
 # COLLUSION
