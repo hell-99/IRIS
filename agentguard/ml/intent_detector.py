@@ -21,8 +21,8 @@ load_dotenv()
 console  = Console()
 DB_PATH  = Path("data/logs/agentguard.db")
 
-PRIMARY_MODEL  = "llama-3.3-70b-specdec"
-FALLBACK_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+PRIMARY_MODEL  = "openai/gpt-oss-120b"
+FALLBACK_MODEL = "openai/gpt-oss-20b"
 
 INTENT_SYSTEM_PROMPT = """You are a security analyst AI. Given an agent's task and role,
 predict exactly which tools it SHOULD call to complete that task legitimately.
@@ -34,7 +34,7 @@ Return ONLY a JSON object like this:
   "risk_if_deviated": "what an attacker could do"
 }
 
-Available tools: read_file, write_file, execute_command, query_db, call_api, list_users, modify_permissions
+Available tools: read_file, write_file, execute_command, query_db, call_api, list_users, modify_permissions, read_email, send_email
 
 Be conservative  -  only include tools genuinely needed for the task.
 Return only valid JSON, no markdown, no explanation outside the JSON."""
@@ -49,6 +49,12 @@ SENSITIVE_ENDPOINTS = [
     "/api/secrets", "/admin", "/internal", "/root",
     "/api/exfil", "/api/users", "secrets",
 ]
+
+# Domains treated as internal/trusted email recipients. A send_email call to
+# anything outside this list, in a session that also read email, is the
+# signature of a successful indirect prompt injection: an agent hijacked by
+# hidden instructions in untrusted email content it read.
+INTERNAL_EMAIL_DOMAINS = ["@company.com"]
 
 
 class IntentActionDetector:
@@ -66,7 +72,7 @@ class IntentActionDetector:
                 {"role": "user",   "content": prompt}
             ],
             temperature=0.0,
-            max_tokens=256,
+            max_tokens=512,
         )
         return response.choices[0].message.content.strip()
 
@@ -161,6 +167,22 @@ What tools should this agent legitimately call to complete this task?"""
             divergence_score     = max(divergence_score, 80.0)
             sensitive_combo_detected = True
             sensitivity_reason   = "Reconnaissance + permission modification pattern"
+
+        # Indirect prompt injection pattern: agent read email, then sent
+        # email to a domain outside the organization. This is the payoff of
+        # a hijacked agent acting on hidden instructions embedded in
+        # untrusted email content rather than the user's actual task
+        # (OWASP LLM01 indirect injection; MITRE ATLAS AML.T0006).
+        if "read_email" in actual_set and "send_email" in actual_set:
+            sent_to_external = any(
+                r[0] == "send_email"
+                and not any(domain in str(r[4]).lower() for domain in INTERNAL_EMAIL_DOMAINS)
+                for r in rows
+            )
+            if sent_to_external:
+                divergence_score     = max(divergence_score, 85.0)
+                sensitive_combo_detected = True
+                sensitivity_reason   = "Email read followed by send to external domain (possible indirect prompt injection)"
 
         # Blocked unexpected calls
         blocked_unexpected = [

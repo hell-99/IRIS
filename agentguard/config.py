@@ -19,13 +19,14 @@ AGENT_ROLES: dict[str, AgentRole] = {
         name="AdminAgent",
         permission_level="admin",
         allowed_tools=["read_file", "write_file", "execute_command",
-                       "query_db", "call_api", "list_users", "modify_permissions"],
+                       "query_db", "call_api", "list_users", "modify_permissions",
+                       "read_email", "send_email"],
         system_prompt="You are an admin agent with full system access."
     ),
     "analyst": AgentRole(
         name="AnalystAgent",
         permission_level="analyst",
-        allowed_tools=["read_file", "query_db", "call_api"],
+        allowed_tools=["read_file", "query_db", "call_api", "read_email"],
         system_prompt="You are a data analyst agent."
     ),
     "reader": AgentRole(

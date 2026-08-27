@@ -17,6 +17,8 @@ Tool isolation model:
   execute_command → minimal (simulated, execve blocked)
   list_users      → minimal (returns static data)
   modify_permissions → minimal (simulated)
+  read_email      → minimal (simulated inbox, no real network)
+  send_email      → minimal (simulated, no real network)
 """
 
 import json
@@ -139,6 +141,24 @@ TOOL_PROFILES: dict[str, ToolSeccompProfile] = {
         cpu_seconds      = 1,
         memory_mb        = 16,
         max_fds          = 4,
+        timeout_sec      = 2.0,
+    ),
+    "read_email": ToolSeccompProfile(
+        tool_name        = "read_email",
+        description      = "Simulated inbox read, minimal syscalls, no real network in demo mode",
+        allowed_syscalls = _MINIMAL,
+        cpu_seconds      = 1,
+        memory_mb        = 16,
+        max_fds          = 8,
+        timeout_sec      = 2.0,
+    ),
+    "send_email": ToolSeccompProfile(
+        tool_name        = "send_email",
+        description      = "Simulated email send, minimal syscalls, no real network in demo mode",
+        allowed_syscalls = _MINIMAL,
+        cpu_seconds      = 1,
+        memory_mb        = 16,
+        max_fds          = 8,
         timeout_sec      = 2.0,
     ),
 }

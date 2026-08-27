@@ -104,6 +104,8 @@ def _compute_risk(agent_role: str, tool_name: str, allowed: bool,
     ttp = None
     if not allowed and tool_name in ("execute_command", "modify_permissions"):
         ttp = "privilege_escalation"
+    elif not allowed and tool_name == "send_email":
+        ttp = "privilege_escalation"  # AML.T0006 LLM Prompt Injection: unauthorized outbound email is a classic injection payoff
     elif not allowed and tool_name in ("read_file", "query_db") and "private" in str(tool_name):
         ttp = "data_exfiltration"
     elif not allowed:
