@@ -75,3 +75,24 @@ jobs:
       - name: Build IRIS API image
         working-directory: agentguard
         run: docker build -f docker/Dockerfile -t iris-api:ci .
+
+  import-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned requirements
+        working-directory: agentguard
+        run: pip install -r requirements.txt
+      - name: Import the FastAPI app (catches missing/mispinned deps that lint can't)
+        working-directory: agentguard
+        run: python -c "from api.main import app; print(len(app.routes), 'routes loaded OK')"
+      - name: Import the dashboard, RAG, and compliance modules
+        working-directory: agentguard
+        run: |
+          python -c "import ast; ast.parse(open('dashboard/app.py').read()); print('dashboard/app.py OK')"
+          python -c "from ml.intent_detector import IntentActionDetector; print('ml/intent_detector.py OK')"
+          python -c "from rag.semantic_search import search_similar; from rag.investigation_agent import investigate; print('rag/ OK')"
+          python -c "from compliance.nist_ai_rmf import NISTAIRMFReport; from compliance.nist_800_171 import NIST800171Report; print('compliance/ OK')"
