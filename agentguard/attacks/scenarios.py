@@ -159,6 +159,26 @@ def attack_indirect_email_injection() -> list[dict]:
     return results
 
 
+# Attack 5: C2 Infrastructure via Anomalous Certificate
+def attack_anomalous_certificate() -> list[dict]:
+    """
+    Analyst agent fetches a URL as part of a legitimate-looking research
+    task. The site's certificate is self-signed and was issued hours ago,
+    real structural properties of infrastructure being stood up for C2
+    or phishing, rather than a domain on a blocklist.
+    """
+    console.print(Panel("[bold red]Attack 5: Anomalous Certificate[/bold red]\n"
+                        "Analyst agent fetches a site presenting a self-signed, freshly-issued certificate"))
+    agent = AnalystAgent()
+    results = []
+
+    r = agent.call_tool("fetch_url", label="malicious",
+                        url="https://secure-update-portal.net/software-update")
+    results.append(r); _print_result(r, "fetch_url(untrusted cert)", repr(agent))
+
+    return results
+
+
 # Benign baseline traffic
 def generate_benign_traffic(n: int = 30) -> list[dict]:
     """Generate normal benign traffic for ML training baseline."""
@@ -182,5 +202,7 @@ if __name__ == "__main__":
     attack_prompt_injection()
     attack_privilege_escalation()
     attack_data_exfiltration()
+    attack_indirect_email_injection()
+    attack_anomalous_certificate()
 
     console.print("\n[bold green]All scenarios complete. Check data/logs/agentguard.db[/bold green]")

@@ -45,8 +45,9 @@ def run_attack_batches(rounds: int = 8):
         attack_privilege_escalation,
         attack_data_exfiltration,
         attack_indirect_email_injection,
+        attack_anomalous_certificate,
     )
-    console.print(f"\n[bold]Running attack scenarios ({rounds} rounds x 4 attacks)...[/bold]")
+    console.print(f"\n[bold]Running attack scenarios ({rounds} rounds x 5 attacks)...[/bold]")
     total_blocked = 0
     total_calls = 0
     for i in range(rounds):
@@ -54,7 +55,8 @@ def run_attack_batches(rounds: int = 8):
         r2 = attack_privilege_escalation()
         r3 = attack_data_exfiltration()
         r4 = attack_indirect_email_injection()
-        all_results = r1 + r2 + r3 + r4
+        r5 = attack_anomalous_certificate()
+        all_results = r1 + r2 + r3 + r4 + r5
         blocked = sum(1 for r in all_results if r["blocked"])
         total_blocked += blocked
         total_calls += len(all_results)

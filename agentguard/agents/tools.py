@@ -8,6 +8,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from security.cert_inspector import inspect_certificate_dict
+
 SANDBOX_DIR=Path("data/sandbox")
 SANDBOX_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -93,6 +95,32 @@ def call_api(endpoint: str, method: str = "GET", payload: dict = None) -> dict[s
     return simulated.get(endpoint, {"status":200, "data":f"[SIMULATED] {method} {endpoint}"})
 
 
+_CERT_DIR = Path(__file__).parent.parent / "security" / "certs"
+# Domain -> which real, pre-generated DER cert that domain presents.
+# contoso-cloud.com: CA-issued, issuer != subject, issued months ago.
+# Anything else: a real self-signed cert issued hours ago, the same
+# pattern documented for adversary-controlled infrastructure (MITRE
+# ATT&CK T1587.003).
+_CERT_MAP = {
+    "api.contoso-cloud.com": _CERT_DIR / "benign_leaf.der",
+}
+_DEFAULT_CERT = _CERT_DIR / "suspicious_leaf.der"
+
+
+def fetch_url(url: str) -> dict[str, Any]:
+    """Simulate an outbound HTTPS fetch. Returns the site's real, ASN.1-decoded X.509 certificate."""
+    domain = url.split("//")[-1].split("/")[0].split(":")[0]
+    cert_path = _CERT_MAP.get(domain, _DEFAULT_CERT)
+    cert_der = cert_path.read_bytes()
+    cert_info = inspect_certificate_dict(cert_der)
+    return {
+        "url": url,
+        "status": 200,
+        "certificate": cert_info,
+        "body": f"[SIMULATED] response body for {url}",
+    }
+
+
 def list_users() -> dict[str, Any]:
     """List all system users (admin only)."""
     return {"users": [
@@ -161,6 +189,7 @@ TOOL_REGISTRY: dict[str,callable] = {
     "modify_permissions": modify_permissions,
     "read_email": read_email,
     "send_email": send_email,
+    "fetch_url": fetch_url,
 }
 
 # Sensitivity level of each tool (used for risk scoring)
@@ -174,4 +203,5 @@ TOOL_SENSITIVITY: dict[str, int] = {
     "modify_permissions":10,
     "read_email": 3,
     "send_email": 8,
+    "fetch_url": 4,
 }

@@ -19,6 +19,7 @@ Tool isolation model:
   modify_permissions → minimal (simulated)
   read_email      → minimal (simulated inbox, no real network)
   send_email      → minimal (simulated, no real network)
+  fetch_url       → filesystem reads (parses a real cert file), no real network
 """
 
 import json
@@ -160,6 +161,15 @@ TOOL_PROFILES: dict[str, ToolSeccompProfile] = {
         memory_mb        = 16,
         max_fds          = 8,
         timeout_sec      = 2.0,
+    ),
+    "fetch_url": ToolSeccompProfile(
+        tool_name        = "fetch_url",
+        description      = "Simulated HTTPS fetch, reads a real cert file from disk and parses it, no real network",
+        allowed_syscalls = _FS_READ,
+        cpu_seconds      = 2,
+        memory_mb        = 32,
+        max_fds          = 8,
+        timeout_sec      = 3.0,
     ),
 }
 

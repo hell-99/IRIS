@@ -34,7 +34,7 @@ Return ONLY a JSON object like this:
   "risk_if_deviated": "what an attacker could do"
 }
 
-Available tools: read_file, write_file, execute_command, query_db, call_api, list_users, modify_permissions, read_email, send_email
+Available tools: read_file, write_file, execute_command, query_db, call_api, list_users, modify_permissions, read_email, send_email, fetch_url
 
 Be conservative  -  only include tools genuinely needed for the task.
 Return only valid JSON, no markdown, no explanation outside the JSON."""
@@ -129,7 +129,7 @@ What tools should this agent legitimately call to complete this task?"""
         # Get actual tool calls from DB  -  include args for sensitive detection
         con  = sqlite3.connect(DB_PATH)
         rows = con.execute("""
-            SELECT tool_name, allowed, risk_score, label, args
+            SELECT tool_name, allowed, risk_score, label, args, result
             FROM tool_calls
             WHERE session_id = ?
             ORDER BY timestamp ASC
@@ -184,6 +184,28 @@ What tools should this agent legitimately call to complete this task?"""
                 sensitive_combo_detected = True
                 sensitivity_reason   = "Email read followed by send to external domain (possible indirect prompt injection)"
 
+        # Anomalous certificate pattern: the agent connected to a site whose
+        # X.509 certificate is self-signed and/or issued within the last 72
+        # hours, real, structural properties of the actual certificate, not
+        # a domain blocklist. Legitimate CA-issued infrastructure is rarely
+        # self-signed and is typically provisioned well before use; C2 and
+        # phishing infrastructure is frequently stood up and certified on
+        # short notice (MITRE ATT&CK T1587.003, Develop Capabilities:
+        # Digital Certificates).
+        for r in rows:
+            if r[0] != "fetch_url":
+                continue
+            try:
+                cert = json.loads(r[5]).get("certificate", {})
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if cert.get("suspicious"):
+                divergence_score     = max(divergence_score, 70.0)
+                sensitive_combo_detected = True
+                reasons = ", ".join(cert.get("suspicious_reasons", []))
+                sensitivity_reason   = f"Connected to a site with an anomalous certificate ({reasons})"
+                break
+
         # Blocked unexpected calls
         blocked_unexpected = [
             r[0] for r in rows
@@ -195,7 +217,7 @@ What tools should this agent legitimately call to complete this task?"""
         verdict = "SUSPICIOUS" if divergence_score > 30 else "NORMAL"
 
         flagged = []
-        for tool_name, allowed, risk_score, label, args in rows:
+        for tool_name, allowed, risk_score, label, args, result in rows:
             if tool_name in unexpected or not allowed:
                 flagged.append({
                     "tool": tool_name,
